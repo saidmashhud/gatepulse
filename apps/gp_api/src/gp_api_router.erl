@@ -38,9 +38,12 @@ routes() ->
         %% API Keys — current tenant self-service
         {"/v1/apikeys",                              gp_api_h_apikeys,         #{}},
         {"/v1/apikeys/:id",                          gp_api_h_apikeys,         #{}},
-        %% API Keys — admin cross-tenant management
-        {"/v1/tenants/:tenant_id/api-keys",          gp_api_h_tenant_apikeys,  #{}},
+        %% Tenant management (admin only) — specific routes before wildcards
+        {"/v1/tenants/:id/stats",                    gp_api_h_tenants,         #{action => stats}},
         {"/v1/tenants/:tenant_id/api-keys/:key_id",  gp_api_h_tenant_apikeys,  #{}},
+        {"/v1/tenants/:tenant_id/api-keys",          gp_api_h_tenant_apikeys,  #{}},
+        {"/v1/tenants/:id",                          gp_api_h_tenants,         #{}},
+        {"/v1/tenants",                              gp_api_h_tenants,         #{}},
         %% Dev inbox
         {"/v1/dev/inbox",                      gp_api_h_dev_inbox, #{}},
         {"/v1/dev/inbox/ui",                   gp_api_h_dev_inbox, #{action => ui}},

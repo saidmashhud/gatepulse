@@ -16,7 +16,8 @@
 -behaviour(gen_server).
 
 -export([start_link/0]).
--export([put/4, lookup_by_token/1, lookup_scopes/1, list/1, delete/2]).
+-export([put/4, lookup_by_token/1, lookup_scopes/1, list/1, delete/2,
+         delete_tenant/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
 -define(ETS,  gp_apikeys_ets).
@@ -71,6 +72,10 @@ list(TenantId) ->
 delete(TenantId, KeyId) ->
     gen_server:call(?MODULE, {delete, TenantId, KeyId}).
 
+%% Delete ALL keys for a tenant (used during tenant purge).
+delete_tenant(TenantId) ->
+    gen_server:call(?MODULE, {delete_tenant, TenantId}).
+
 %%--------------------------------------------------------------------
 %% gen_server callbacks
 %%--------------------------------------------------------------------
@@ -111,6 +116,20 @@ handle_call({delete, TenantId, KeyId}, _From, State) ->
         [] ->
             {reply, {error, not_found}, State}
     end;
+
+handle_call({delete_tenant, TenantId}, _From, State) ->
+    %% Collect all key IDs belonging to this tenant, then delete
+    KeyIds = ets:foldl(fun
+        ({KeyId, T, _, _, _, _, _}, Acc) when T =:= TenantId -> [KeyId | Acc];
+        (_, Acc) -> Acc
+    end, [], ?ETS),
+    lists:foreach(fun(KeyId) ->
+        ets:delete(?ETS, KeyId),
+        dets:delete(?DETS, KeyId)
+    end, KeyIds),
+    logger:info(#{event => api_keys_purged, tenant_id => TenantId,
+                  count => length(KeyIds)}),
+    {reply, {ok, length(KeyIds)}, State};
 
 handle_call(_Req, _From, State) ->
     {reply, {error, unknown_request}, State}.
