@@ -26,7 +26,9 @@ handle(<<"POST">>, Req0, Opts) ->
                              <<"payload">>     => jsx:encode(Ep),
                              <<"tenant_id">>   => TId},
                     case gp_store_client:put_endpoint(Data) of
-                        {ok, _} -> reply_json(201, Ep, Req1, Opts);
+                        {ok, _} ->
+                            gp_tenant_manager:start_actor(Ep),
+                            reply_json(201, Ep, Req1, Opts);
                         {error, R} ->
                             gp_api_error:reply(Req1, 500, store_error,
                                 list_to_binary(io_lib:format("~p", [R]))),
@@ -106,7 +108,9 @@ handle(<<"PATCH">>, Req0, Opts) ->
                                  <<"payload">>     => jsx:encode(Updated),
                                  <<"tenant_id">>   => TId},
                         case gp_store_client:put_endpoint(Data) of
-                            {ok, _} -> reply_json(200, Updated, Req1, Opts);
+                            {ok, _} ->
+                                gp_tenant_manager:update_actor(Updated),
+                                reply_json(200, Updated, Req1, Opts);
                             {error, R} ->
                                 gp_api_error:reply(Req1, 500, store_error,
                                     list_to_binary(io_lib:format("~p", [R]))),
@@ -135,6 +139,7 @@ handle(<<"DELETE">>, Req0, Opts) ->
         EndpointId ->
             case gp_store_client:delete_endpoint(EndpointId) of
                 {ok, _} ->
+                    gp_tenant_manager:stop_actor(EndpointId),
                     Req = cowboy_req:reply(204, #{}, <<>>, Req0),
                     {ok, Req, Opts};
                 {error, R} ->

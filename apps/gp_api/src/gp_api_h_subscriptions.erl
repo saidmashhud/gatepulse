@@ -21,7 +21,9 @@ handle(<<"POST">>, Req0, Opts) ->
                         <<"created_at">>      => Now
                     },
                     case gp_store_client:put_subscription(Sub) of
-                        {ok, _} -> reply_json(201, Sub, Req1, Opts);
+                        {ok, _} ->
+                            gp_subscription_cache:add(Sub),
+                            reply_json(201, Sub, Req1, Opts);
                         {error, R} ->
                             gp_api_error:reply(Req1, 500, store_error,
                                 list_to_binary(io_lib:format("~p", [R]))),
@@ -59,6 +61,7 @@ handle(<<"GET">>, Req0, Opts) ->
     end;
 
 handle(<<"DELETE">>, Req0, Opts) ->
+    TId = get_tenant(Req0),
     case cowboy_req:binding(id, Req0) of
         undefined ->
             gp_api_error:reply(Req0, 400, validation_error, <<"subscription_id required">>),
@@ -66,6 +69,7 @@ handle(<<"DELETE">>, Req0, Opts) ->
         SubId ->
             case gp_store_client:delete_subscription(SubId) of
                 {ok, _} ->
+                    gp_subscription_cache:remove(TId, SubId),
                     Req = cowboy_req:reply(204, #{}, <<>>, Req0),
                     {ok, Req, Opts};
                 {error, R} ->

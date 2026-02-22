@@ -8,6 +8,13 @@ start_link() ->
 
 init([]) ->
     SupFlags = #{strategy => one_for_one, intensity => 5, period => 10},
+    SubCache = #{
+        id      => gp_subscription_cache,
+        start   => {gp_subscription_cache, start_link, []},
+        restart => permanent,
+        shutdown => 5000,
+        type    => worker
+    },
     IdempotencySpec = #{
         id      => gp_core_idempotency,
         start   => {gp_core_idempotency, start_link, []},
@@ -15,4 +22,4 @@ init([]) ->
         shutdown => 5000,
         type    => worker
     },
-    {ok, {SupFlags, [IdempotencySpec]}}.
+    {ok, {SupFlags, [SubCache, IdempotencySpec]}}.

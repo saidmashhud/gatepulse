@@ -5,3 +5,10 @@ export type {
   CreateEndpointOptions,
   CreateSubscriptionOptions,
 } from "./client";
+export {
+  verifyWebhook,
+  verifyWebhookAsync,
+  createWebhookHandler,
+  InvalidSignatureError,
+} from "./webhook";
+export type { WebhookEvent, WebhookHandlerConfig } from "./webhook";

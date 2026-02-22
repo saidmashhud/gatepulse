@@ -1,7 +1,7 @@
 -module(gp_delivery_worker).
 -behaviour(gen_server).
 
--export([start_link/0, start_link/1]).
+-export([start_link/0, start_link/1, deliver_actor/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
@@ -115,6 +115,80 @@ deliver(Job) ->
             dlq_job(JobId, EventId, EndpointId, TenantId, AttemptN,
                     <<"failed to fetch event or endpoint">>)
     end.
+
+%% ── Actor delivery path ──────────────────────────────────────────────────────
+%% Called from a spawned process in gp_endpoint_actor:dispatch_next/1.
+%% Event is already embedded in Job; Endpoint config is passed in directly —
+%% no C store reads required.
+
+deliver_actor(Job, Endpoint) ->
+    Event      = maps:get(<<"event">>, Job),
+    AttemptN   = maps:get(<<"attempt_n">>, Job, 1),
+    EndpointId = maps:get(<<"endpoint_id">>, Job),
+    TenantId   = maps:get(<<"tenant_id">>, Job),
+    Transform  = maps:get(<<"transform">>, Job, null),
+    Transformed = gp_core_transform:apply(Transform, Event),
+    AttemptId  = gp_core_uuid:generate_str(),
+    %% Build payload using existing helper (needs attempt_count key)
+    PayloadBin = build_payload(Transformed, Job#{<<"attempt_count">> => AttemptN},
+                               AttemptId),
+
+    URL       = maps:get(<<"url">>, Endpoint),
+    Secret    = maps:get(<<"secret">>, Endpoint, <<>>),
+    TimeoutMs = maps:get(<<"timeout_ms">>, Endpoint, ?GUN_TIMEOUT),
+    EpHeaders = endpoint_headers(maps:get(<<"headers">>, Endpoint, #{})),
+    EventId   = maps:get(<<"event_id">>, Job),
+    Topic     = maps:get(<<"topic">>, Event, <<>>),
+
+    StartMs  = erlang:system_time(millisecond),
+    T0       = erlang:monotonic_time(millisecond),
+    HttpResult = try
+        do_http_post(URL, Secret, PayloadBin, EventId, Topic, AttemptId,
+                     TenantId, TimeoutMs, EpHeaders)
+    catch
+        _:Err -> {error, Err}
+    end,
+    Duration = erlang:monotonic_time(millisecond) - T0,
+    record_attempt(AttemptId, maps:get(<<"job_id">>, Job), EventId, EndpointId,
+                   TenantId, AttemptN, StartMs, Duration, HttpResult),
+    publish_delivery_status(TenantId, AttemptId, maps:get(<<"job_id">>, Job),
+                            EventId, EndpointId, AttemptN, Duration, HttpResult),
+    actor_result(Job, HttpResult).
+
+actor_result(_Job, {ok, Code, _}) when Code >= 200, Code < 300 ->
+    {ok, Code};
+actor_result(Job, {ok, Code, _}) when Code =:= 400; Code =:= 401; Code =:= 403;
+                                      Code =:= 404; Code =:= 405; Code =:= 410;
+                                      Code =:= 422 ->
+    {dlq, make_actor_dlq(Job, Code)};
+actor_result(Job, _Other) ->
+    AttemptN = maps:get(<<"attempt_n">>, Job, 1),
+    MaxAtt   = maps:get(<<"max_attempts">>, Job, 10),
+    case AttemptN >= MaxAtt of
+        true  -> {dlq, make_actor_dlq(Job, max_attempts)};
+        false -> {retry, gp_core_retry:backoff_secs(AttemptN, #{}),
+                         Job#{<<"attempt_n">> => AttemptN + 1}}
+    end.
+
+make_actor_dlq(Job, Reason) ->
+    ReasonBin = if
+        is_integer(Reason) ->
+            iolist_to_binary(["http_", integer_to_binary(Reason)]);
+        Reason =:= max_attempts ->
+            <<"max_attempts_exceeded">>;
+        is_binary(Reason) ->
+            Reason;
+        true ->
+            list_to_binary(io_lib:format("~p", [Reason]))
+    end,
+    #{
+        <<"job_id">>        => maps:get(<<"job_id">>, Job),
+        <<"event_id">>      => maps:get(<<"event_id">>, Job),
+        <<"endpoint_id">>   => maps:get(<<"endpoint_id">>, Job),
+        <<"tenant_id">>     => maps:get(<<"tenant_id">>, Job),
+        <<"reason">>        => ReasonBin,
+        <<"attempt_count">> => maps:get(<<"attempt_n">>, Job, 1)
+    }.
 
 fetch_event_and_endpoint(TenantId, EventId, EndpointId) ->
     case gp_store_client:get_event(TenantId, EventId) of

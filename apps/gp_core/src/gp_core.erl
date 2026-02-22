@@ -41,46 +41,48 @@ validate_event(TenantId, RawMap) when is_binary(TenantId), is_map(RawMap) ->
     end.
 
 %% Find all subscriptions matching the event topic for a tenant.
-%% Also applies the subscription-level filter (if any).
+%% Uses ETS subscription cache — zero C store round-trips.
 route_event(TenantId, EventMap) ->
-    Topic = maps:get(<<"topic">>, EventMap),
-    case gp_store_client:list_subscriptions(TenantId) of
-        {ok, #{<<"items">> := Subs}} ->
-            Matched = [S || S <- Subs,
-                            gp_core_topic:matches(
-                                maps:get(<<"topic_pattern">>, S, <<"#">>),
-                                Topic),
-                            gp_core_filter:matches(
-                                maps:get(<<"filter">>, S, undefined),
-                                EventMap)],
-            {ok, Matched};
-        {error, _} = E -> E
-    end.
+    Topic   = maps:get(<<"topic">>, EventMap),
+    Matched = gp_subscription_cache:match(TenantId, Topic),
+    Filtered = [S || S <- Matched,
+                     gp_core_filter:matches(
+                         maps:get(<<"filter">>, S, undefined), EventMap)],
+    {ok, Filtered}.
 
 %% Create delivery jobs for a list of matching subscriptions.
-%% Embeds the subscription transform spec in each job for the delivery worker.
+%% Hot path: casts to in-memory endpoint actor (ETS lookup, no C store reads).
+%% Fallback: enqueues to C store if actor not found (poller will pick up).
 create_delivery_jobs(EventMap, Subs, _TenantId) ->
     EventId  = maps:get(<<"id">>, EventMap),
     TenantId = maps:get(<<"tenant_id">>, EventMap),
     Results  = lists:map(fun(Sub) ->
         JobId      = gp_core_uuid:generate_str(),
         EndpointId = maps:get(<<"endpoint_id">>, Sub),
-        MaxAtt     = gp_core_retry:max_attempts(),
-        Transform  = maps:get(<<"transform">>, Sub, null),
-        Job = #{
-            <<"job_id">>       => JobId,
-            <<"event_id">>     => EventId,
-            <<"endpoint_id">>  => EndpointId,
-            <<"tenant_id">>    => TenantId,
-            <<"max_attempts">> => MaxAtt,
-            <<"transform">>    => Transform
-        },
-        logger:info(#{event => job_enqueued, job_id => JobId,
-                      event_id => EventId, endpoint_id => EndpointId,
-                      tenant_id => TenantId}),
-        case gp_store_client:enqueue_job(Job) of
-            {ok, _}    -> {ok, JobId};
-            {error, R} -> {error, R}
+        case gp_endpoint_registry:lookup(EndpointId) of
+            {ok, Pid} ->
+                %% Actor path: zero C store reads, delivery in microseconds
+                gen_server:cast(Pid, {enqueue, EventMap, Sub, JobId}),
+                {ok, JobId};
+            not_found ->
+                %% Fallback: C store job queue (poller picks up)
+                MaxAtt    = gp_core_retry:max_attempts(),
+                Transform = maps:get(<<"transform">>, Sub, null),
+                Job = #{
+                    <<"job_id">>       => JobId,
+                    <<"event_id">>     => EventId,
+                    <<"endpoint_id">>  => EndpointId,
+                    <<"tenant_id">>    => TenantId,
+                    <<"max_attempts">> => MaxAtt,
+                    <<"transform">>    => Transform
+                },
+                logger:info(#{event => job_enqueued_fallback, job_id => JobId,
+                              event_id => EventId, endpoint_id => EndpointId,
+                              tenant_id => TenantId}),
+                case gp_store_client:enqueue_job(Job) of
+                    {ok, _}    -> {ok, JobId};
+                    {error, R} -> {error, R}
+                end
         end
     end, Subs),
     Ids = [Id || {ok, Id} <- Results],

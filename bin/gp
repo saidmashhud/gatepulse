@@ -49,6 +49,7 @@ Commands:
   init            [--url URL] [--key API_KEY]
   doctor
   tail            [--endpoint ID] [--topic PATTERN]
+  test            [--endpoint ID] [--payload JSON] [--file FILE]
 
 Environment:
   GP_URL      Base URL (default: http://localhost:8080)
@@ -391,6 +392,49 @@ CFG
           echo "---"
         fi
       done
+    ;;
+
+  test)
+    parse_args "$@"
+    ep="${ARGS[endpoint]:-}"
+    payload_arg="${ARGS[payload]:-}"
+    payload_file="${ARGS[file]:-}"
+
+    if [[ -n "$payload_file" ]]; then
+      payload=$(cat "$payload_file")
+    elif [[ -n "$payload_arg" ]]; then
+      payload="$payload_arg"
+    else
+      payload='{"source":"gp-test","ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+    fi
+
+    body=$(jq -n --arg t "gatepulse.test" --argjson p "$payload" '{topic:$t,payload:$p}')
+    echo "Publishing test event…"
+    result=$(gp_post "/v1/events" "$body")
+    event_id=$(echo "$result" | jq -r '.id // .event_id // empty' 2>/dev/null)
+    if [[ -z "$event_id" ]]; then
+      echo "✗ Failed to publish event" >&2
+      echo "$result" | jq . 2>/dev/null || echo "$result"
+      exit 1
+    fi
+    echo "Event ID: $event_id"
+    echo "Waiting for delivery…"
+    sleep 2
+
+    # Poll deliveries for this event
+    qs="?event_id=$event_id&limit=5"
+    [[ -n "$ep" ]] && qs+="&endpoint_id=$ep"
+    attempts=$(gp_get "/v1/deliveries$qs" | jq -r '.items // []')
+    count=$(echo "$attempts" | jq 'length')
+    if [[ "$count" == "0" || -z "$count" ]]; then
+      echo "✗ No delivery attempts found (no subscriptions?)"
+      exit 1
+    fi
+    echo "$attempts" | jq -r '.[] | if .status == "success" then
+      "✓ Delivered to \(.endpoint_id) in \(.duration_ms // "?")ms (HTTP \(.http_status // "?"))"
+    else
+      "✗ Delivery \(.status // "unknown"): HTTP \(.http_status // "?") — \(.error // "")"
+    end'
     ;;
 
   help|"") usage ;;

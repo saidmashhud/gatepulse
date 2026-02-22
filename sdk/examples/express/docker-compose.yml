@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+  gatepulse:
+    image: ghcr.io/gatepulse/gatepulse:latest
+    ports: ["8080:8080"]
+    environment:
+      GP_API_KEY: dev-secret
+      GP_STORE_SOCKET: /run/gp_store.sock
+    volumes:
+      - gp-data:/var/lib/gatepulse
+
+  receiver:
+    build: .
+    ports: ["3001:3001"]
+    environment:
+      PORT: 3001
+      WEBHOOK_SECRET: my-secret
+    depends_on: [gatepulse]
+
+volumes:
+  gp-data:

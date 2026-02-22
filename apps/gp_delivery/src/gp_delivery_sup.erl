@@ -29,7 +29,26 @@ init([]) ->
                    shutdown => 5000,
                    type    => worker},
 
-    {ok, {SupFlags, [Poller, WorkerPool, Compaction]}}.
+    Registry = #{id      => gp_endpoint_registry,
+                 start   => {gp_endpoint_registry, start_link, []},
+                 restart => permanent,
+                 shutdown => 5000,
+                 type    => worker},
+
+    ActorSup = #{id      => gp_delivery_actor_sup,
+                 start   => {gp_delivery_actor_sup, start_link, []},
+                 restart => permanent,
+                 shutdown => infinity,
+                 type    => supervisor},
+
+    TenantMgr = #{id      => gp_tenant_manager,
+                  start   => {gp_tenant_manager, start_link, []},
+                  restart => permanent,
+                  shutdown => 5000,
+                  type    => worker},
+
+    {ok, {SupFlags, [Poller, WorkerPool, Compaction,
+                     Registry, ActorSup, TenantMgr]}}.
 
 %% Start delivery poller and worker pool (called by leader node).
 start_workers() ->
