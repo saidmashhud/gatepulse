@@ -21,12 +21,15 @@ publish(TenantId, Event) ->
         Pid ! {gp_stream, TenantId, Event}
     end, Members).
 
-%% Subscribe this process to events for TenantId matching Pattern
-subscribe(TenantId, _Pattern, Pid) ->
+%% Subscribe this process to events for TenantId.
+%% _TopicPattern is intentionally ignored here: all tenant events are
+%% broadcast to every subscriber and topic filtering is applied by each
+%% SSE handler in its message loop (see gp_stream_handler).
+subscribe(TenantId, _TopicPattern, Pid) ->
     pg:join(?PG_SCOPE, TenantId, Pid).
 
 %% Unsubscribe
-unsubscribe(TenantId, _Pattern, Pid) ->
+unsubscribe(TenantId, _TopicPattern, Pid) ->
     pg:leave(?PG_SCOPE, TenantId, Pid).
 
 handle_call(_Req, _From, State) -> {reply, ok, State}.

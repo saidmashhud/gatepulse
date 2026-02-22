@@ -1,11 +1,16 @@
-%% PostgreSQL store backend stub.
-%% Activated when GP_STORE_BACKEND=postgres.
-%% Requires GP_POSTGRES_URL environment variable.
+%% =============================================================================
+%% STUB — PostgreSQL backend is NOT yet implemented.
 %%
-%% This module implements the gp_store_behaviour callbacks.
-%% In the current release it delegates all operations to the C backend
-%% (gp_store_client) as a compatibility shim. Full PostgreSQL support
-%% is planned for v2.0-F.
+%% Every callback below delegates to the C backend (gp_store_client).
+%% This module exists only to satisfy the gp_store_behaviour contract so that
+%% GP_STORE_BACKEND=postgres can be set without compile errors.
+%%
+%% Full PostgreSQL support (epgsql, migrations, schema) is planned for v2.0-F.
+%% Do NOT use this in production with a real PostgreSQL database.
+%% =============================================================================
+%%
+%% Activated when GP_STORE_BACKEND=postgres.
+%% Requires GP_POSTGRES_URL environment variable (currently unused).
 -module(gp_store_pg).
 -behaviour(gp_store_behaviour).
 

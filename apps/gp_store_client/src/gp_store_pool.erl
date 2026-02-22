@@ -42,11 +42,25 @@ connect_all(Path, N, Acc) ->
             connect_all(Path, N-1, Acc)
     end.
 
-handle_call({call, Frame}, _From, #state{pool = Pool} = State) ->
+handle_call({call, Frame}, _From, #state{pool = Pool, socket_path = Path} = State) ->
     case queue:out(Pool) of
         {{value, Sock}, Pool2} ->
-            Result = do_call(Sock, Frame),
-            {reply, Result, State#state{pool = queue:in(Sock, Pool2)}};
+            case do_call(Sock, Frame) of
+                {error, Reason} when Reason =:= closed;
+                                     Reason =:= econnreset;
+                                     Reason =:= enotconn ->
+                    %% Socket is dead — reconnect and retry once
+                    gen_tcp:close(Sock),
+                    case reconnect(Path) of
+                        {ok, NewSock} ->
+                            Result = do_call(NewSock, Frame),
+                            {reply, Result, State#state{pool = queue:in(NewSock, Pool2)}};
+                        {error, _} = Err ->
+                            {reply, Err, State#state{pool = Pool2}}
+                    end;
+                Result ->
+                    {reply, Result, State#state{pool = queue:in(Sock, Pool2)}}
+            end;
         {empty, _} ->
             {reply, {error, pool_empty}, State}
     end;
@@ -62,6 +76,11 @@ terminate(_Reason, #state{pool = Pool}) ->
     ok.
 
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
+
+reconnect(Path) ->
+    gen_tcp:connect({local, Path}, 0,
+                    [binary, {packet, 0}, {active, false},
+                     {send_timeout, 5000}]).
 
 do_call(Sock, Frame) ->
     case gen_tcp:send(Sock, Frame) of
