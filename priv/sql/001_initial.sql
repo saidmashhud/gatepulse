@@ -1,4 +1,4 @@
--- GatePulse PostgreSQL schema
+-- HookLine PostgreSQL schema
 -- Migration: 001_initial
 
 CREATE TABLE IF NOT EXISTS gp_events (

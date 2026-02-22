@@ -1,25 +1,25 @@
-# GatePulse + FastAPI Example
+# HookLine + FastAPI Example
 
 A minimal webhook receiver built with Python and FastAPI.
 
 ## Quick start
 
 ```bash
-pip install fastapi uvicorn gatepulse
+pip install fastapi uvicorn hookline
 WEBHOOK_SECRET=my-secret uvicorn receiver:app --port 3001
 ```
 
 Publish a test event:
 
 ```bash
-export GP_API_KEY=dev-secret
+export HL_API_KEY=dev-secret
 gp events publish --topic orders.created --payload '{"orderId":"123"}'
 ```
 
 ## Key pattern
 
 ```python
-from gatepulse import verify_webhook, InvalidSignatureError
+from hookline import verify_webhook, InvalidSignatureError
 
 @app.post("/webhook")
 async def webhook(request: Request):

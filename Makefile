@@ -18,13 +18,13 @@ c-test:
 eunit:
 	rebar3 eunit
 
-# Start gp_store daemon + Erlang shell for local development
+# Start hl_store daemon + Erlang shell for local development
 dev: c-build
-	@echo "Starting gp_store..."
-	@mkdir -p /tmp/gp_data
-	@./c/build/gp_store /tmp/gp_store.sock /tmp/gp_data &
+	@echo "Starting hl_store..."
+	@mkdir -p /tmp/hl_data
+	@./c/build/hl_store /tmp/hl_store.sock /tmp/hl_data &
 	@sleep 0.3
-	GP_API_KEY=dev-secret rebar3 shell
+	HL_API_KEY=dev-secret rebar3 shell
 
 clean:
 	$(MAKE) -C c clean

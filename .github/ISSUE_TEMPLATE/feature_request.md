@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for GatePulse
+about: Suggest an idea for HookLine
 title: "[FEAT] "
 labels: enhancement
 assignees: ""

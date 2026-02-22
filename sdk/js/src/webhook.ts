@@ -1,8 +1,8 @@
 /**
- * GatePulse webhook verification utilities.
+ * HookLine webhook verification utilities.
  *
  * Usage (Express):
- *   import { verifyWebhook, createWebhookHandler } from 'gatepulse';
+ *   import { verifyWebhook, createWebhookHandler } from 'hookline';
  *   app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
  *     const event = verifyWebhook(req.body, req.headers, process.env.WEBHOOK_SECRET!);
  *     console.log(event.topic, event.payload);
@@ -36,7 +36,7 @@ function getHeader(headers: HeadersLike, name: string): string | undefined {
 }
 
 /**
- * Verify a GatePulse webhook request synchronously (Node.js crypto).
+ * Verify a HookLine webhook request synchronously (Node.js crypto).
  * Throws InvalidSignatureError if signature is missing or invalid.
  * Returns the parsed event.
  *
@@ -83,7 +83,7 @@ export function verifyWebhook(
 }
 
 /**
- * Verify a GatePulse webhook request using the Web Crypto API (async).
+ * Verify a HookLine webhook request using the Web Crypto API (async).
  * Works in browser, Deno, Bun, Cloudflare Workers, Node 18+.
  */
 export async function verifyWebhookAsync(

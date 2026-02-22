@@ -1,11 +1,11 @@
 /**
- * GatePulse webhook receiver — Node.js + Express
+ * HookLine webhook receiver — Node.js + Express
  *
  * Start: node receiver.js
  * Then publish: gp events publish --topic orders.created --payload '{"orderId":"123"}'
  */
 const express = require("express");
-const { verifyWebhook, InvalidSignatureError } = require("gatepulse");
+const { verifyWebhook, InvalidSignatureError } = require("hookline");
 
 const SECRET = process.env.WEBHOOK_SECRET || "";
 const PORT = process.env.PORT || 3001;
@@ -38,7 +38,7 @@ app.post(
 app.get("/healthz", (_req, res) => res.send("ok"));
 
 app.listen(PORT, () => {
-  console.log(`GatePulse receiver listening on http://localhost:${PORT}/webhook`);
+  console.log(`HookLine receiver listening on http://localhost:${PORT}/webhook`);
   if (!SECRET) {
     console.warn("Warning: WEBHOOK_SECRET not set — signature verification skipped");
   }

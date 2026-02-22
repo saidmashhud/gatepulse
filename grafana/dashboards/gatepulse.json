@@ -16,7 +16,7 @@
     { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" }
   ],
   "annotations": { "list": [] },
-  "description": "GatePulse webhook delivery metrics",
+  "description": "HookLine webhook delivery metrics",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -31,7 +31,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "sum(rate(gatepulse_events_published_total[5m]))",
+          "expr": "sum(rate(hookline_events_published_total[5m]))",
           "legendFormat": "events/s",
           "refId": "A"
         }
@@ -47,7 +47,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "sum(gatepulse_queue_depth)",
+          "expr": "sum(hookline_queue_depth)",
           "legendFormat": "pending jobs",
           "refId": "A"
         }
@@ -63,7 +63,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "sum(gatepulse_dlq_total)",
+          "expr": "sum(hookline_dlq_total)",
           "legendFormat": "dlq jobs",
           "refId": "A"
         }
@@ -79,7 +79,7 @@
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "gatepulse_stream_clients",
+          "expr": "hookline_stream_clients",
           "legendFormat": "clients",
           "refId": "A"
         }
@@ -94,9 +94,9 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "sum(rate(gatepulse_deliveries_total{status=\"success\"}[5m]))", "legendFormat": "success", "refId": "A" },
-        { "expr": "sum(rate(gatepulse_deliveries_total{status=\"retried\"}[5m]))", "legendFormat": "retried", "refId": "B" },
-        { "expr": "sum(rate(gatepulse_deliveries_total{status=\"failed\"}[5m]))", "legendFormat": "failed", "refId": "C" }
+        { "expr": "sum(rate(hookline_deliveries_total{status=\"success\"}[5m]))", "legendFormat": "success", "refId": "A" },
+        { "expr": "sum(rate(hookline_deliveries_total{status=\"retried\"}[5m]))", "legendFormat": "retried", "refId": "B" },
+        { "expr": "sum(rate(hookline_deliveries_total{status=\"failed\"}[5m]))", "legendFormat": "failed", "refId": "C" }
       ],
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": {
@@ -115,9 +115,9 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "histogram_quantile(0.50, sum(rate(gatepulse_delivery_latency_ms_bucket[5m])) by (le))", "legendFormat": "P50", "refId": "A" },
-        { "expr": "histogram_quantile(0.95, sum(rate(gatepulse_delivery_latency_ms_bucket[5m])) by (le))", "legendFormat": "P95", "refId": "B" },
-        { "expr": "histogram_quantile(0.99, sum(rate(gatepulse_delivery_latency_ms_bucket[5m])) by (le))", "legendFormat": "P99", "refId": "C" }
+        { "expr": "histogram_quantile(0.50, sum(rate(hookline_delivery_latency_ms_bucket[5m])) by (le))", "legendFormat": "P50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(hookline_delivery_latency_ms_bucket[5m])) by (le))", "legendFormat": "P95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum(rate(hookline_delivery_latency_ms_bucket[5m])) by (le))", "legendFormat": "P99", "refId": "C" }
       ],
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 } }, "overrides": [] }
@@ -129,7 +129,7 @@
       "gridPos": { "h": 6, "w": 8, "x": 0, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "sum(gatepulse_inflight)", "legendFormat": "inflight", "refId": "A" }
+        { "expr": "sum(hookline_inflight)", "legendFormat": "inflight", "refId": "A" }
       ],
       "options": { "tooltip": { "mode": "single" } },
       "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "blue" }, "custom": { "lineWidth": 2, "fillOpacity": 20 } }, "overrides": [] }
@@ -141,7 +141,7 @@
       "gridPos": { "h": 6, "w": 8, "x": 8, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "sum(rate(gatepulse_overload_drops_total[5m]))", "legendFormat": "drops/s", "refId": "A" }
+        { "expr": "sum(rate(hookline_overload_drops_total[5m]))", "legendFormat": "drops/s", "refId": "A" }
       ],
       "options": { "tooltip": { "mode": "single" } },
       "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "fixed", "fixedColor": "red" }, "custom": { "lineWidth": 2, "fillOpacity": 20 } }, "overrides": [] }
@@ -153,7 +153,7 @@
       "gridPos": { "h": 6, "w": 8, "x": 16, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "sum by (op, status) (rate(gatepulse_store_ops_total[5m]))", "legendFormat": "{{op}} {{status}}", "refId": "A" }
+        { "expr": "sum by (op, status) (rate(hookline_store_ops_total[5m]))", "legendFormat": "{{op}} {{status}}", "refId": "A" }
       ],
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "lineWidth": 1, "fillOpacity": 5 } }, "overrides": [] }
@@ -165,7 +165,7 @@
       "gridPos": { "h": 6, "w": 12, "x": 0, "y": 18 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "sum(rate(gatepulse_rate_limited_total[5m]))", "legendFormat": "rate limited/s", "refId": "A" }
+        { "expr": "sum(rate(hookline_rate_limited_total[5m]))", "legendFormat": "rate limited/s", "refId": "A" }
       ],
       "options": { "tooltip": { "mode": "single" } },
       "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "fixed", "fixedColor": "orange" }, "custom": { "lineWidth": 2, "fillOpacity": 10 } }, "overrides": [] }
@@ -177,7 +177,7 @@
       "gridPos": { "h": 6, "w": 12, "x": 12, "y": 18 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "sum(rate(gatepulse_stream_events_total[5m]))", "legendFormat": "events/s", "refId": "A" }
+        { "expr": "sum(rate(hookline_stream_events_total[5m]))", "legendFormat": "events/s", "refId": "A" }
       ],
       "options": { "tooltip": { "mode": "single" } },
       "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "fixed", "fixedColor": "purple" }, "custom": { "lineWidth": 2, "fillOpacity": 10 } }, "overrides": [] }
@@ -185,7 +185,7 @@
   ],
   "refresh": "30s",
   "schemaVersion": 38,
-  "tags": ["gatepulse", "webhooks"],
+  "tags": ["hookline", "webhooks"],
   "templating": {
     "list": [
       {
@@ -201,7 +201,7 @@
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "GatePulse Webhook Delivery",
-  "uid": "gatepulse-main",
+  "title": "HookLine Webhook Delivery",
+  "uid": "hookline-main",
   "version": 1
 }

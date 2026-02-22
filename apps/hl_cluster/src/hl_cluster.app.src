@@ -1,0 +1,8 @@
+{application, hl_cluster,
+ [{description, "HookLine Cluster Coordination"},
+  {vsn, "0.1.0"},
+  {registered, [hl_cluster_sup, hl_leader]},
+  {mod, {hl_cluster_app, []}},
+  {applications, [kernel, stdlib]},
+  {env, []}
+ ]}.

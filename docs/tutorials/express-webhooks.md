@@ -1,7 +1,7 @@
 # Add Webhooks to Express in 15 Minutes
 
 By the end of this tutorial you will have:
-- GatePulse running locally delivering webhooks
+- HookLine running locally delivering webhooks
 - An Express app receiving and verifying signed events
 - A working end-to-end flow for the `orders.created` event
 
@@ -9,10 +9,10 @@ By the end of this tutorial you will have:
 
 ---
 
-## Step 1 — Start GatePulse (2 min)
+## Step 1 — Start HookLine (2 min)
 
 ```bash
-curl -o docker-compose.yml https://raw.githubusercontent.com/gatepulse/gatepulse/main/docker-compose.yml
+curl -o docker-compose.yml https://raw.githubusercontent.com/hookline/hookline/main/docker-compose.yml
 docker compose up -d
 ```
 
@@ -32,14 +32,14 @@ Open the console: http://localhost:8080/console — enter `dev-secret` as the AP
 ```bash
 mkdir my-webhook-receiver && cd my-webhook-receiver
 npm init -y
-npm install express gatepulse
+npm install express hookline
 ```
 
 Create `index.js`:
 
 ```javascript
 const express = require("express");
-const { verifyWebhook, InvalidSignatureError } = require("gatepulse");
+const { verifyWebhook, InvalidSignatureError } = require("hookline");
 
 const SECRET = process.env.WEBHOOK_SECRET || "my-webhook-secret";
 const app = express();
@@ -77,14 +77,14 @@ WEBHOOK_SECRET=my-webhook-secret node index.js
 
 ---
 
-## Step 3 — Register the endpoint in GatePulse (3 min)
+## Step 3 — Register the endpoint in HookLine (3 min)
 
 ```bash
-export GP_API_KEY=dev-secret
+export HL_API_KEY=dev-secret
 
 # Create endpoint pointing at your receiver
 EP=$(curl -s -X POST http://localhost:8080/v1/endpoints \
-  -H "Authorization: Bearer $GP_API_KEY" \
+  -H "Authorization: Bearer $HL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "http://host.docker.internal:3001/webhook",
@@ -96,12 +96,12 @@ echo "Endpoint: $EP"
 
 # Subscribe to orders.created events
 curl -s -X POST http://localhost:8080/v1/subscriptions \
-  -H "Authorization: Bearer $GP_API_KEY" \
+  -H "Authorization: Bearer $HL_API_KEY" \
   -H "Content-Type: application/json" \
   -d "{\"endpoint_id\": \"$EP\", \"topic_pattern\": \"orders.*\"}" | jq .
 ```
 
-> **macOS / Linux:** Use `http://host.docker.internal:3001` so the GatePulse container can reach your localhost.
+> **macOS / Linux:** Use `http://host.docker.internal:3001` so the HookLine container can reach your localhost.
 
 ---
 
@@ -109,7 +109,7 @@ curl -s -X POST http://localhost:8080/v1/subscriptions \
 
 ```bash
 curl -s -X POST http://localhost:8080/v1/events \
-  -H "Authorization: Bearer $GP_API_KEY" \
+  -H "Authorization: Bearer $HL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "topic": "orders.created",
@@ -148,13 +148,13 @@ Open http://localhost:8080/console:
 
 ## What happens on failure?
 
-If your receiver returns a 5xx or times out, GatePulse retries with exponential backoff (1s, 2s, 4s, …, up to 1 hour). After 10 attempts the event moves to the **DLQ**.
+If your receiver returns a 5xx or times out, HookLine retries with exponential backoff (1s, 2s, 4s, …, up to 1 hour). After 10 attempts the event moves to the **DLQ**.
 
 From the DLQ you can requeue with one click in the Console, or via:
 
 ```bash
 curl -X POST http://localhost:8080/v1/dlq/<job_id>/requeue \
-  -H "Authorization: Bearer $GP_API_KEY"
+  -H "Authorization: Bearer $HL_API_KEY"
 ```
 
 ---
@@ -163,9 +163,9 @@ curl -X POST http://localhost:8080/v1/dlq/<job_id>/requeue \
 
 - [ ] Set `WEBHOOK_SECRET` to a strong random secret (32+ bytes)
 - [ ] Replace `http://host.docker.internal` with your actual domain
-- [ ] Set `GP_API_KEY` to a strong random key
-- [ ] Mount a persistent volume for `/var/lib/gatepulse`
-- [ ] Add a reverse proxy (nginx) in front of GatePulse
+- [ ] Set `HL_API_KEY` to a strong random key
+- [ ] Mount a persistent volume for `/var/lib/hookline`
+- [ ] Add a reverse proxy (nginx) in front of HookLine
 - [ ] Set up Prometheus scraping from `:8080/metrics`
 
 ---

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GatePulse Python SDK — basic example.
+"""HookLine Python SDK — basic example.
 
 Run with:
     GATEPULSE_URL=http://localhost:8080 GATEPULSE_API_KEY=dev-secret python basic.py
@@ -9,12 +9,12 @@ import os
 import urllib.request
 import json
 
-from gatepulse import GatePulseClient
+from hookline import HookLineClient
 
 BASE_URL = os.environ.get("GATEPULSE_URL", "http://localhost:8080")
 API_KEY = os.environ.get("GATEPULSE_API_KEY", "dev-secret")
 
-client = GatePulseClient(BASE_URL, API_KEY)
+client = HookLineClient(BASE_URL, API_KEY)
 
 # 1. Create a dev inbox
 req = urllib.request.Request(

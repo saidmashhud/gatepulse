@@ -22,7 +22,7 @@ static void crc32_init_table(void) {
     crc32_init_done = 1;
 }
 
-uint32_t gp_crc32(const uint8_t *data, size_t length) {
+uint32_t hl_crc32(const uint8_t *data, size_t length) {
     if (!crc32_init_done) crc32_init_table();
     uint32_t crc = 0xFFFFFFFFu;
     for (size_t i = 0; i < length; i++)
@@ -38,7 +38,7 @@ static char *seg_path(const char *data_dir, int seg_idx) {
     return path;
 }
 
-static int open_segment(gp_store_t *store, int seg_idx, int create) {
+static int open_segment(hl_store_t *store, int seg_idx, int create) {
     char *path = seg_path(store->data_dir, seg_idx);
     if (!path) return -1;
     int flags = O_RDWR | (create ? O_CREAT : 0);
@@ -49,7 +49,7 @@ static int open_segment(gp_store_t *store, int seg_idx, int create) {
 }
 
 /* --- Public API --- */
-int gp_store_init(gp_store_t *store, const char *data_dir) {
+int hl_store_init(hl_store_t *store, const char *data_dir) {
     store->data_dir = strdup(data_dir);
     if (!store->data_dir) return -1;
 
@@ -89,17 +89,17 @@ int gp_store_init(gp_store_t *store, const char *data_dir) {
     return 0;
 }
 
-void gp_store_close(gp_store_t *store) {
+void hl_store_close(hl_store_t *store) {
     if (store->seg_fd >= 0) close(store->seg_fd);
     free(store->data_dir);
     store->seg_fd = -1;
 }
 
-int gp_store_append(gp_store_t *store, uint8_t type,
+int hl_store_append(hl_store_t *store, uint8_t type,
                     const uint8_t *payload, uint32_t length,
-                    gp_offset_t *out_offset) {
+                    hl_offset_t *out_offset) {
     /* Roll to new segment if needed */
-    if (store->seg_offset + GP_RECORD_OVERHEAD + length > GP_SEGMENT_SIZE) {
+    if (store->seg_offset + HL_RECORD_OVERHEAD + length > HL_SEGMENT_SIZE) {
         close(store->seg_fd);
         store->current_seg++;
         store->seg_offset = 0;
@@ -113,37 +113,37 @@ int gp_store_append(gp_store_t *store, uint8_t type,
     }
 
     /* Build header */
-    uint8_t hdr[GP_RECORD_HEADER_SIZE];
-    uint32_t magic_be = htonl(GP_MAGIC);
+    uint8_t hdr[HL_RECORD_HEADER_SIZE];
+    uint32_t magic_be = htonl(HL_MAGIC);
     uint32_t len_be   = htonl(length);
     memcpy(hdr, &magic_be, 4);
-    hdr[4] = GP_VERSION;
+    hdr[4] = HL_VERSION;
     hdr[5] = type;
     memcpy(hdr + 6, &len_be, 4);
 
     /* CRC over header (sans crc field) + payload */
-    uint32_t crc = gp_crc32(hdr, GP_RECORD_HEADER_SIZE);
+    uint32_t crc = hl_crc32(hdr, HL_RECORD_HEADER_SIZE);
     crc = 0xFFFFFFFFu;  /* re-compute properly */
     {
-        uint8_t *full = malloc(GP_RECORD_HEADER_SIZE + length);
+        uint8_t *full = malloc(HL_RECORD_HEADER_SIZE + length);
         if (!full) return -1;
-        memcpy(full, hdr, GP_RECORD_HEADER_SIZE);
-        memcpy(full + GP_RECORD_HEADER_SIZE, payload, length);
-        crc = gp_crc32(full, GP_RECORD_HEADER_SIZE + length);
+        memcpy(full, hdr, HL_RECORD_HEADER_SIZE);
+        memcpy(full + HL_RECORD_HEADER_SIZE, payload, length);
+        crc = hl_crc32(full, HL_RECORD_HEADER_SIZE + length);
         free(full);
     }
     uint32_t crc_be = htonl(crc);
 
     /* Write header + payload + crc */
-    if (write(store->seg_fd, hdr, GP_RECORD_HEADER_SIZE) != GP_RECORD_HEADER_SIZE) return -1;
+    if (write(store->seg_fd, hdr, HL_RECORD_HEADER_SIZE) != HL_RECORD_HEADER_SIZE) return -1;
     if (write(store->seg_fd, payload, length) != (ssize_t)length) return -1;
     if (write(store->seg_fd, &crc_be, 4) != 4) return -1;
 
-    store->seg_offset += GP_RECORD_OVERHEAD + length;
+    store->seg_offset += HL_RECORD_OVERHEAD + length;
     return 0;
 }
 
-int gp_store_read(gp_store_t *store, gp_offset_t offset,
+int hl_store_read(hl_store_t *store, hl_offset_t offset,
                   uint8_t **payload, uint32_t *length, uint8_t *type) {
     char *path = seg_path(store->data_dir, (int)offset.segment);
     if (!path) return -1;
@@ -156,15 +156,15 @@ int gp_store_read(gp_store_t *store, gp_offset_t offset,
         close(fd); return -1;
     }
 
-    uint8_t hdr[GP_RECORD_HEADER_SIZE];
-    if (read(fd, hdr, GP_RECORD_HEADER_SIZE) != GP_RECORD_HEADER_SIZE) {
+    uint8_t hdr[HL_RECORD_HEADER_SIZE];
+    if (read(fd, hdr, HL_RECORD_HEADER_SIZE) != HL_RECORD_HEADER_SIZE) {
         close(fd); return -1;
     }
 
     uint32_t magic;
     memcpy(&magic, hdr, 4);
     magic = ntohl(magic);
-    if (magic != GP_MAGIC) { close(fd); return -1; }
+    if (magic != HL_MAGIC) { close(fd); return -1; }
 
     if (type) *type = hdr[5];
 
@@ -189,11 +189,11 @@ int gp_store_read(gp_store_t *store, gp_offset_t offset,
     uint32_t stored_crc = ntohl(stored_crc_be);
 
     /* Verify CRC */
-    uint8_t *full = malloc(GP_RECORD_HEADER_SIZE + plen);
+    uint8_t *full = malloc(HL_RECORD_HEADER_SIZE + plen);
     if (!full) { free(buf); return -1; }
-    memcpy(full, hdr, GP_RECORD_HEADER_SIZE);
-    memcpy(full + GP_RECORD_HEADER_SIZE, buf, plen);
-    uint32_t computed_crc = gp_crc32(full, GP_RECORD_HEADER_SIZE + plen);
+    memcpy(full, hdr, HL_RECORD_HEADER_SIZE);
+    memcpy(full + HL_RECORD_HEADER_SIZE, buf, plen);
+    uint32_t computed_crc = hl_crc32(full, HL_RECORD_HEADER_SIZE + plen);
     free(full);
 
     if (computed_crc != stored_crc) {

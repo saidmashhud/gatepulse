@@ -1,0 +1,18 @@
+{application, hl_api, [
+    {description, "HookLine HTTP API (Cowboy)"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {hl_api_app, []}},
+    {applications, [
+        kernel, stdlib, sasl,
+        cowboy,
+        jsx,
+        prometheus,
+        prometheus_cowboy,
+        hl_core,
+        hl_store_client,
+        hl_dev_inbox
+    ]},
+    {env, []},
+    {modules, []}
+]}.

@@ -28,13 +28,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create directories
-RUN mkdir -p /opt/gatepulse /var/lib/gatepulse /run/gatepulse
+RUN mkdir -p /opt/hookline /var/lib/hookline /run/hookline
 
 # Copy C daemon
-COPY --from=c-builder /build/c/build/gp_store /usr/local/bin/gp_store
+COPY --from=c-builder /build/c/build/hl_store /usr/local/bin/hl_store
 
 # Copy Erlang release
-COPY --from=erl-builder /build/_build/prod/rel/gatepulse /opt/gatepulse
+COPY --from=erl-builder /build/_build/prod/rel/hookline /opt/hookline
 
 # Copy entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -42,16 +42,16 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 8080
 
-VOLUME ["/var/lib/gatepulse"]
+VOLUME ["/var/lib/hookline"]
 
-ENV GP_PORT=8080 \
-    GP_LISTEN_ADDR=0.0.0.0 \
-    GP_STORE_SOCKET=/run/gatepulse/gp_store.sock \
-    GP_DATA_DIR=/var/lib/gatepulse \
-    GP_SINGLE_TENANT=true \
-    GP_API_KEY=change-me \
-    GP_TENANT_ID=default \
-    GP_DELIVERY_WORKERS=16 \
-    GP_STORE_POOL_SIZE=8
+ENV HL_PORT=8080 \
+    HL_LISTEN_ADDR=0.0.0.0 \
+    HL_STORE_SOCKET=/run/hookline/hl_store.sock \
+    HL_DATA_DIR=/var/lib/hookline \
+    HL_SINGLE_TENANT=true \
+    HL_API_KEY=change-me \
+    HL_TENANT_ID=default \
+    HL_DELIVERY_WORKERS=16 \
+    HL_STORE_POOL_SIZE=8
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

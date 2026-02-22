@@ -12,7 +12,7 @@ A clear and concise description of the bug.
 
 ## Steps to Reproduce
 
-1. Start GatePulse with `...`
+1. Start HookLine with `...`
 2. Create endpoint `...`
 3. Publish event `...`
 4. See error
@@ -27,7 +27,7 @@ What actually happened. Include any error messages, logs, or stack traces.
 
 ## Environment
 
-- GatePulse version:
+- HookLine version:
 - OS:
 - Erlang/OTP version:
 - Deployment: Docker / bare metal / other

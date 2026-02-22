@@ -1,10 +1,10 @@
-// GatePulse JS SDK — basic example
+// HookLine JS SDK — basic example
 // Run with: node basic.js
-// Requires GatePulse running at http://localhost:8080
+// Requires HookLine running at http://localhost:8080
 
-import { GatePulseClient } from "@gatepulse/sdk";
+import { HookLineClient } from "@hookline/sdk";
 
-const client = new GatePulseClient({
+const client = new HookLineClient({
   baseUrl: process.env.GATEPULSE_URL || "http://localhost:8080",
   apiKey: process.env.GATEPULSE_API_KEY || "dev-secret",
 });

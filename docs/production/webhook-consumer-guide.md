@@ -1,10 +1,10 @@
 # Webhook Consumer Guide
 
-This guide explains how to receive and process webhooks delivered by GatePulse.
+This guide explains how to receive and process webhooks delivered by HookLine.
 
 ## Request format
 
-GatePulse delivers webhooks as `POST` requests with the following headers:
+HookLine delivers webhooks as `POST` requests with the following headers:
 
 | Header | Description |
 |--------|-------------|
@@ -20,7 +20,7 @@ The body is the raw JSON event payload.
 
 ## Verifying signatures
 
-When an endpoint has a `secret` configured, GatePulse signs each delivery:
+When an endpoint has a `secret` configured, HookLine signs each delivery:
 
 ```
 x-gp-signature: sha256=<hex-encoded HMAC-SHA256>
@@ -81,7 +81,7 @@ async def webhook(request: Request):
 ## Responding correctly
 
 - Return `2xx` within **30 seconds** to acknowledge delivery.
-- Any non-2xx response or timeout causes GatePulse to retry.
+- Any non-2xx response or timeout causes HookLine to retry.
 - Return the same 2xx on duplicate deliveries (idempotent handling).
 
 ## Retry schedule
@@ -99,7 +99,7 @@ After `max_attempts` (default: 10) the job moves to the Dead Letter Queue.
 
 ## Handling duplicates
 
-GatePulse delivers **at least once**. Always implement idempotent handlers:
+HookLine delivers **at least once**. Always implement idempotent handlers:
 
 ```javascript
 // Store processed event IDs in your database
@@ -116,7 +116,7 @@ await db.markEventProcessed(eventId);
 During development, use the built-in Dev Inbox instead of a real HTTPS endpoint:
 
 ```bash
-# Start GatePulse
+# Start HookLine
 docker-compose up -d
 
 # Create an inbox

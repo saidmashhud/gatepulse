@@ -1,6 +1,6 @@
-# GatePulse
+# HookLine
 
-**GatePulse** is an open-source webhook delivery service — a self-hosted alternative to Svix/Hookdeck. It accepts events, durably stores them in a custom C-based append-only log, and delivers them to your HTTP endpoints with retries, signatures, and replay.
+**HookLine** is an open-source webhook delivery service — a self-hosted alternative to Svix/Hookdeck. It accepts events, durably stores them in a custom C-based append-only log, and delivers them to your HTTP endpoints with retries, signatures, and replay.
 
 ## Features
 
@@ -19,7 +19,7 @@
 ## Quickstart
 
 ```bash
-# Start GatePulse
+# Start HookLine
 docker-compose up -d
 
 # Create a webhook endpoint
@@ -71,8 +71,8 @@ curl "http://localhost:8080/v1/dev/inbox/messages?token=$TOKEN" \
 The `bin/gp` shell script wraps the API:
 
 ```bash
-export GP_URL=http://localhost:8080
-export GP_API_KEY=dev-secret
+export HL_URL=http://localhost:8080
+export HL_API_KEY=dev-secret
 
 gp endpoints add --url https://my.app/hooks --secret s3cr3t
 gp subs add --endpoint <id> --topic "orders.#"
@@ -151,15 +151,15 @@ def webhook():
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GP_LISTEN_ADDR` | `:8080` | HTTP listen address |
-| `GP_API_KEY` | `dev-secret` | API key (single-tenant mode) |
-| `GP_TENANT_ID` | `default` | Tenant ID (single-tenant mode) |
-| `GP_SINGLE_TENANT` | `true` | Single vs multi-tenant mode |
-| `GP_STORE_SOCKET` | `/tmp/gp_store.sock` | Path to C store daemon socket |
-| `GP_STORE_DATA_DIR` | `/var/lib/gatepulse` | Storage directory |
-| `GP_RETRY_MAX_ATTEMPTS` | `10` | Max delivery attempts |
-| `GP_RETENTION_SECS` | `604800` | Event retention (7 days) |
-| `GP_DELIVERY_WORKERS` | `20` | Concurrent delivery workers |
+| `HL_LISTEN_ADDR` | `:8080` | HTTP listen address |
+| `HL_API_KEY` | `dev-secret` | API key (single-tenant mode) |
+| `HL_TENANT_ID` | `default` | Tenant ID (single-tenant mode) |
+| `HL_SINGLE_TENANT` | `true` | Single vs multi-tenant mode |
+| `HL_STORE_SOCKET` | `/tmp/gp_store.sock` | Path to C store daemon socket |
+| `HL_STORE_DATA_DIR` | `/var/lib/hookline` | Storage directory |
+| `HL_RETRY_MAX_ATTEMPTS` | `10` | Max delivery attempts |
+| `HL_RETENTION_SECS` | `604800` | Event retention (7 days) |
+| `HL_DELIVERY_WORKERS` | `20` | Concurrent delivery workers |
 
 ---
 
@@ -199,7 +199,7 @@ Key endpoints:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                   GatePulse (Erlang/OTP)            │
+│                   HookLine (Erlang/OTP)            │
 │                                                     │
 │  gp_api ──► gp_core ──► gp_store_client ──┐        │
 │     │                                      │        │

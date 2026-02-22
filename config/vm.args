@@ -1,6 +1,6 @@
 ## Single-node, no distribution needed
--sname gatepulse
--setcookie gatepulse_secret
+-sname hookline
+-setcookie hookline_secret
 
 ## Async thread pool
 +A 64

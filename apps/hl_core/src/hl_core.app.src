@@ -1,0 +1,15 @@
+{application, hl_core, [
+    {description, "HookLine Core Logic"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {hl_core_app, []}},
+    {applications, [
+        kernel, stdlib,
+        jsx,
+        uuid,
+        crypto,
+        hl_store_client
+    ]},
+    {env, []},
+    {modules, []}
+]}.

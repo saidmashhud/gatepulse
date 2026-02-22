@@ -1,0 +1,14 @@
+apiVersion: v2
+name: hookline
+description: HookLine - Open Source Webhook Delivery Service
+type: application
+version: 1.3.0
+appVersion: "1.3.0"
+keywords:
+  - webhooks
+  - event-delivery
+home: https://hookline.dev
+sources:
+  - https://github.com/saidmashhud/hookline
+maintainers:
+  - name: HookLine Team

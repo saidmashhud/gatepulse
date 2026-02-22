@@ -1,0 +1,12 @@
+{application, hl_dev_inbox, [
+    {description, "HookLine Developer Inbox (test webhook receiver)"},
+    {vsn, "0.1.0"},
+    {registered, [hl_dev_inbox]},
+    {mod, {hl_dev_inbox_app, []}},
+    {applications, [
+        kernel, stdlib,
+        jsx
+    ]},
+    {env, []},
+    {modules, []}
+]}.

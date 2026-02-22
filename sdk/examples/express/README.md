@@ -1,4 +1,4 @@
-# GatePulse + Express Example
+# HookLine + Express Example
 
 A minimal webhook receiver built with Node.js and Express.
 
@@ -12,7 +12,7 @@ WEBHOOK_SECRET=my-secret node receiver.js
 In another terminal, publish a test event:
 
 ```bash
-export GP_API_KEY=dev-secret
+export HL_API_KEY=dev-secret
 gp events publish --topic orders.created --payload '{"orderId":"123","total":99.99}'
 ```
 
@@ -21,7 +21,7 @@ You should see the event printed in the receiver terminal within a second.
 ## Key pattern
 
 ```js
-const { verifyWebhook, InvalidSignatureError } = require("gatepulse");
+const { verifyWebhook, InvalidSignatureError } = require("hookline");
 
 app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
   try {

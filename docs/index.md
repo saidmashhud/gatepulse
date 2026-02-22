@@ -1,6 +1,6 @@
-# GatePulse
+# HookLine
 
-**GatePulse** is an open-source webhook delivery service built for reliability, performance, and developer experience. It handles fan-out delivery, retries, dead-letter queues, signatures, and real-time streaming out of the box.
+**HookLine** is an open-source webhook delivery service built for reliability, performance, and developer experience. It handles fan-out delivery, retries, dead-letter queues, signatures, and real-time streaming out of the box.
 
 ## Features
 
@@ -25,7 +25,7 @@
 
 ```bash
 # 1. Start
-GP_API_KEY=my-secret docker compose up -d
+HL_API_KEY=my-secret docker compose up -d
 
 # 2. Create a test inbox (no external server needed)
 INBOX=$(curl -s -X POST http://localhost:8080/v1/dev/inbox \
@@ -65,7 +65,7 @@ open "http://localhost:8080/v1/dev/inbox/ui?token=$TOKEN"
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  GatePulse Container                                     │
+│  HookLine Container                                     │
 │                                                          │
 │  ┌───────────┐  UNIX socket  ┌────────────────────────┐ │
 │  │  gp_store │◄─────────────►│   Erlang/OTP Node      │ │
@@ -93,24 +93,24 @@ Publish → validate → store (append-only) → route → filter → fan-out jo
 
 ```bash
 # Smoke tests (23 checks)
-GP_API_KEY=change-me-in-production bash test/integration.sh
+HL_API_KEY=change-me-in-production bash test/integration.sh
 
 # Complex E2E scenarios (16 scenarios)
-GP_API_KEY=change-me-in-production bash test/e2e.sh
+HL_API_KEY=change-me-in-production bash test/e2e.sh
 ```
 
 ## Configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GP_PORT` | `8080` | HTTP listen port |
-| `GP_API_KEY` | — | Master API key (required) |
-| `GP_TENANT_ID` | `default` | Default tenant |
-| `GP_DELIVERY_WORKERS` | `16` | Concurrent delivery workers |
-| `GP_MAX_PAYLOAD_BYTES` | `524288` | Max event body size (512 KB) |
-| `GP_MAX_QUEUE_DEPTH` | `100000` | Queue depth before 429 |
-| `GP_RETENTION_SECS` | `604800` | Segment retention (7 days) |
-| `GP_DATA_DIR` | `/var/lib/gatepulse` | Store data directory |
+| `HL_PORT` | `8080` | HTTP listen port |
+| `HL_API_KEY` | — | Master API key (required) |
+| `HL_TENANT_ID` | `default` | Default tenant |
+| `HL_DELIVERY_WORKERS` | `16` | Concurrent delivery workers |
+| `HL_MAX_PAYLOAD_BYTES` | `524288` | Max event body size (512 KB) |
+| `HL_MAX_QUEUE_DEPTH` | `100000` | Queue depth before 429 |
+| `HL_RETENTION_SECS` | `604800` | Segment retention (7 days) |
+| `HL_DATA_DIR` | `/var/lib/hookline` | Store data directory |
 
 Full reference → [`docs/production/checklist.md`](production/checklist.md)
 

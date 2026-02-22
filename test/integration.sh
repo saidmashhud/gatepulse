@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# GatePulse integration smoke test
-# Usage: GP_URL=http://localhost:8080 GP_API_KEY=dev-secret ./test/integration.sh
+# HookLine integration smoke test
+# Usage: HL_URL=http://localhost:8080 HL_API_KEY=dev-secret ./test/integration.sh
 set -euo pipefail
 
-GP_URL="${GP_URL:-http://localhost:8080}"
-GP_API_KEY="${GP_API_KEY:-dev-secret}"
+HL_URL="${HL_URL:-http://localhost:8080}"
+HL_API_KEY="${HL_API_KEY:-dev-secret}"
 PASS=0; FAIL=0
 
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }
@@ -14,10 +14,10 @@ info()  { printf '\033[36m%s\033[0m\n' "$*"; }
 ok()   { PASS=$((PASS+1)); green "  PASS: $1"; }
 fail() { FAIL=$((FAIL+1)); red   "  FAIL: $1 — $2"; }
 
-gp_get()  { curl -sf -H "Authorization: Bearer $GP_API_KEY" "${GP_URL}$1"; }
-gp_post() { curl -sf -X POST -H "Authorization: Bearer $GP_API_KEY" \
-              -H "Content-Type: application/json" -d "$2" "${GP_URL}$1"; }
-gp_del()  { curl -sf -X DELETE -H "Authorization: Bearer $GP_API_KEY" "${GP_URL}$1"; }
+gp_get()  { curl -sf -H "Authorization: Bearer $HL_API_KEY" "${HL_URL}$1"; }
+gp_post() { curl -sf -X POST -H "Authorization: Bearer $HL_API_KEY" \
+              -H "Content-Type: application/json" -d "$2" "${HL_URL}$1"; }
+gp_del()  { curl -sf -X DELETE -H "Authorization: Bearer $HL_API_KEY" "${HL_URL}$1"; }
 
 check() {
   local name="$1"; local actual="$2"; local expected="$3"
@@ -28,8 +28,8 @@ check() {
   fi
 }
 
-info "=== GatePulse Integration Tests ==="
-info "Target: $GP_URL"
+info "=== HookLine Integration Tests ==="
+info "Target: $HL_URL"
 echo
 
 # ── Health ────────────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ TOKEN=$(echo "$INBOX" | python3 -c "import sys,json; print(json.load(sys.stdin)[
 # ── Endpoint ──────────────────────────────────────────────────────────────────
 info "--- Endpoints ---"
 EP_BODY=$(cat <<JSON
-{"url":"${GP_URL}/v1/dev/inbox/receive/${TOKEN}","enabled":true,"timeout_ms":5000}
+{"url":"${HL_URL}/v1/dev/inbox/receive/${TOKEN}","enabled":true,"timeout_ms":5000}
 JSON
 )
 EP=$(gp_post "/v1/endpoints" "$EP_BODY")
@@ -129,8 +129,8 @@ gp_del "/v1/endpoints/$EP_ID" >/dev/null 2>&1 && ok "DELETE /endpoints/:id" || f
 
 # ── Metrics ───────────────────────────────────────────────────────────────────
 info "--- Metrics ---"
-check "GET /metrics" "$(curl -sf "${GP_URL}/metrics")" "gatepulse"
-check "GET /openapi.yaml" "$(curl -sf "${GP_URL}/openapi.yaml")" "openapi"
+check "GET /metrics" "$(curl -sf "${HL_URL}/metrics")" "hookline"
+check "GET /openapi.yaml" "$(curl -sf "${HL_URL}/openapi.yaml")" "openapi"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo

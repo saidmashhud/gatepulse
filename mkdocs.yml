@@ -1,8 +1,8 @@
-site_name: GatePulse
+site_name: HookLine
 site_description: OSS Webhook Delivery Service
-site_url: https://gatepulse.dev
-repo_url: https://github.com/saidmashhud/gatepulse
-repo_name: gatepulse
+site_url: https://hookline.dev
+repo_url: https://github.com/saidmashhud/hookline
+repo_name: hookline
 edit_uri: edit/main/docs/
 
 theme:
@@ -29,7 +29,7 @@ theme:
 
 nav:
   - Home: index.md
-  - Why GatePulse: why-gatepulse.md
+  - Why HookLine: why-hookline.md
   - Tutorials:
     - Express + Webhooks: tutorials/express-webhooks.md
     - FastAPI + Webhooks: tutorials/fastapi-webhooks.md

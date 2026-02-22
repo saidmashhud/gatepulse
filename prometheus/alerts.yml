@@ -1,95 +1,95 @@
 groups:
-  - name: gatepulse
+  - name: hookline
     rules:
       # DLQ is growing — something is consistently failing
-      - alert: GatePulseDLQGrowing
-        expr: increase(gatepulse_dlq_total[10m]) > 0
+      - alert: HookLineDLQGrowing
+        expr: increase(hookline_dlq_total[10m]) > 0
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "GatePulse DLQ is growing"
+          summary: "HookLine DLQ is growing"
           description: "Dead letter queue has grown in the last 10 minutes. Check failing endpoints."
 
       # DLQ has any entries at all
-      - alert: GatePulseDLQNonEmpty
-        expr: sum(gatepulse_dlq_total) > 0
+      - alert: HookLineDLQNonEmpty
+        expr: sum(hookline_dlq_total) > 0
         for: 1m
         labels:
           severity: warning
         annotations:
-          summary: "GatePulse DLQ is non-empty"
+          summary: "HookLine DLQ is non-empty"
           description: "There are {{ $value }} jobs in the dead letter queue."
 
       # Queue depth approaching limit (80% of default 100k)
-      - alert: GatePulseQueueDepthHigh
-        expr: sum(gatepulse_queue_depth) > 80000
+      - alert: HookLineQueueDepthHigh
+        expr: sum(hookline_queue_depth) > 80000
         for: 2m
         labels:
           severity: warning
         annotations:
-          summary: "GatePulse queue depth is high"
+          summary: "HookLine queue depth is high"
           description: "Queue depth is {{ $value }}, approaching the 100k limit."
 
       # Queue depth critical (90%)
-      - alert: GatePulseQueueDepthCritical
-        expr: sum(gatepulse_queue_depth) > 90000
+      - alert: HookLineQueueDepthCritical
+        expr: sum(hookline_queue_depth) > 90000
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "GatePulse queue depth is critical"
+          summary: "HookLine queue depth is critical"
           description: "Queue depth is {{ $value }}, events will be dropped at 100k."
 
       # Delivery failure rate > 5% over 5 minutes
-      - alert: GatePulseHighFailureRate
+      - alert: HookLineHighFailureRate
         expr: |
-          sum(rate(gatepulse_deliveries_total{status="failed"}[5m]))
-            / sum(rate(gatepulse_deliveries_total[5m])) > 0.05
+          sum(rate(hookline_deliveries_total{status="failed"}[5m]))
+            / sum(rate(hookline_deliveries_total[5m])) > 0.05
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "GatePulse delivery failure rate is high"
+          summary: "HookLine delivery failure rate is high"
           description: "{{ $value | humanizePercentage }} of deliveries are failing."
 
       # Delivery failure rate > 20% — critical
-      - alert: GatePulseDeliveryFailuresCritical
+      - alert: HookLineDeliveryFailuresCritical
         expr: |
-          sum(rate(gatepulse_deliveries_total{status="failed"}[5m]))
-            / sum(rate(gatepulse_deliveries_total[5m])) > 0.20
+          sum(rate(hookline_deliveries_total{status="failed"}[5m]))
+            / sum(rate(hookline_deliveries_total[5m])) > 0.20
         for: 2m
         labels:
           severity: critical
         annotations:
-          summary: "GatePulse delivery failure rate is critical"
+          summary: "HookLine delivery failure rate is critical"
           description: "{{ $value | humanizePercentage }} of deliveries are failing."
 
       # P99 latency > 10 seconds
-      - alert: GatePulseHighP99Latency
+      - alert: HookLineHighP99Latency
         expr: |
           histogram_quantile(0.99,
-            sum(rate(gatepulse_delivery_latency_ms_bucket[5m])) by (le)) > 10000
+            sum(rate(hookline_delivery_latency_ms_bucket[5m])) by (le)) > 10000
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "GatePulse P99 delivery latency is high"
+          summary: "HookLine P99 delivery latency is high"
           description: "P99 latency is {{ $value | humanizeDuration }}ms."
 
       # Overload drops occurring
-      - alert: GatePulseOverloadDrops
-        expr: sum(rate(gatepulse_overload_drops_total[5m])) > 0
+      - alert: HookLineOverloadDrops
+        expr: sum(rate(hookline_overload_drops_total[5m])) > 0
         for: 2m
         labels:
           severity: warning
         annotations:
-          summary: "GatePulse is dropping events due to overload"
+          summary: "HookLine is dropping events due to overload"
           description: "{{ $value }} events/s are being dropped. Queue may be full."
 
       # No events published in 15 minutes (may indicate producer issue)
-      - alert: GatePulseNoEventsPublished
-        expr: sum(rate(gatepulse_events_published_total[15m])) == 0
+      - alert: HookLineNoEventsPublished
+        expr: sum(rate(hookline_events_published_total[15m])) == 0
         for: 15m
         labels:
           severity: info
@@ -98,11 +98,11 @@ groups:
           description: "No events have been published recently. This may be expected in low-traffic environments."
 
       # Rate limiter firing heavily
-      - alert: GatePulseRateLimiterFiring
-        expr: sum(rate(gatepulse_rate_limited_total[5m])) > 10
+      - alert: HookLineRateLimiterFiring
+        expr: sum(rate(hookline_rate_limited_total[5m])) > 10
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "GatePulse rate limiter is throttling deliveries"
+          summary: "HookLine rate limiter is throttling deliveries"
           description: "{{ $value }} deliveries/s are being rate-limited."

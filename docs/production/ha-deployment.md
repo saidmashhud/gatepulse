@@ -1,5 +1,5 @@
 # HA
-GatePulse v1.3+ supports multi-node HA via Erlang clustering.
+HookLine v1.3+ supports multi-node HA via Erlang clustering.
 
 ## Leader Election
 

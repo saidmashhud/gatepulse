@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "GatePulse",
-    "description": "GatePulse webhook delivery service — полный набор сценариев для ручного тестирования.\n\n**Начало работы:**\n1. Установи переменные окружения в Environment (base_url, api_key)\n2. Запусти `01 Health / Healthz` — должен вернуть 200\n3. Прогони сценарий \"🚀 Полный сценарий\" сверху вниз",
+    "name": "HookLine",
+    "description": "HookLine webhook delivery service — полный набор сценариев для ручного тестирования.\n\n**Начало работы:**\n1. Установи переменные окружения в Environment (base_url, api_key)\n2. Запусти `01 Health / Healthz` — должен вернуть 200\n3. Прогони сценарий \"🚀 Полный сценарий\" сверху вниз",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -64,8 +64,8 @@
             "listen": "test",
             "script": { "exec": [
               "pm.test('Status 200', () => pm.response.to.have.status(200));",
-              "pm.test('Has gatepulse metrics', () => {",
-              "  pm.expect(pm.response.text()).to.include('gatepulse_');",
+              "pm.test('Has hookline metrics', () => {",
+              "  pm.expect(pm.response.text()).to.include('hookline_');",
               "});"
             ]}
           }]
@@ -193,7 +193,7 @@
             "url": { "raw": "{{base_url}}/v1/subscriptions", "host": ["{{base_url}}"], "path": ["v1","subscriptions"] },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"endpoint_id\": \"{{endpoint_id}}\",\n  \"topic_pattern\": \"orders.*\",\n  \"filter\": {\n    \"and\": [\n      {\"gt\": \"data.amount\", \"value\": 100},\n      {\"eq\": \"data.currency\", \"value\": \"USD\"}\n    ]\n  },\n  \"transform\": [\n    {\"op\": \"remove_field\", \"path\": \"data.internal_id\"},\n    {\"op\": \"set_field\", \"path\": \"data.source\", \"value\": \"gatepulse\"}\n  ]\n}"
+              "raw": "{\n  \"endpoint_id\": \"{{endpoint_id}}\",\n  \"topic_pattern\": \"orders.*\",\n  \"filter\": {\n    \"and\": [\n      {\"gt\": \"data.amount\", \"value\": 100},\n      {\"eq\": \"data.currency\", \"value\": \"USD\"}\n    ]\n  },\n  \"transform\": [\n    {\"op\": \"remove_field\", \"path\": \"data.internal_id\"},\n    {\"op\": \"set_field\", \"path\": \"data.source\", \"value\": \"hookline\"}\n  ]\n}"
             }
           },
           "event": [{

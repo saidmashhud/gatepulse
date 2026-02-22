@@ -1,0 +1,16 @@
+{application, hl_delivery, [
+    {description, "HookLine Webhook Delivery Engine"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {hl_delivery_app, []}},
+    {applications, [
+        kernel, stdlib,
+        gun,
+        jsx,
+        prometheus,
+        hl_core,
+        hl_store_client
+    ]},
+    {env, []},
+    {modules, []}
+]}.

@@ -1,6 +1,6 @@
-export { GatePulseClient } from "./client";
+export { HookLineClient } from "./client";
 export type {
-  GatePulseConfig,
+  HookLineConfig,
   PublishEventOptions,
   CreateEndpointOptions,
   CreateSubscriptionOptions,

@@ -1,8 +1,8 @@
-# ТЗ: Эволюция GatePulse (post-v1 roadmap)
+# ТЗ: Эволюция HookLine (post-v1 roadmap)
 
 ## 1) Цели эволюции
 
-1. Сделать GatePulse **операционно “железобетонным”** (наблюдаемость, бэкапы, восстановление, защита от перегруза).
+1. Сделать HookLine **операционно “железобетонным”** (наблюдаемость, бэкапы, восстановление, защита от перегруза).
 2. Улучшить **DX** (SDKs, CLI, локальная разработка, инспекция).
 3. Довести streaming/реалтайм до полноценного режима (cursor/resume, backfill).
 4. Добавить **enterprise-ready** элементы без потери простоты OSS (RBAC/scopes, secrets encryption, HA).
@@ -34,7 +34,7 @@
 
 ## v1.1 — Hardening & DX (операционка + удобство)
 
-**Цель:** чтобы GatePulse уверенно работал в проде на одной ноде, и им было удобно пользоваться как dev-tool.
+**Цель:** чтобы HookLine уверенно работал в проде на одной ноде, и им было удобно пользоваться как dev-tool.
 
 ### 3.1. Операционные фичи
 
@@ -47,7 +47,7 @@
 
 - Поведение при перегрузе:
   - `POST /events` возвращает `429` с `Retry-After` или `503` (configurable)
-  - Метрика `gatepulse_overload_drops_total`
+  - Метрика `hookline_overload_drops_total`
 
 2. **Retention & compaction v1.1**
 
@@ -68,8 +68,8 @@
 
 1. **SDKs (минимум)**
 
-- `gatepulse-js` (Node/TS): publish event, manage endpoints/subs, verify signature helper.
-- `gatepulse-python`: publish event, verify signature.
+- `hookline-js` (Node/TS): publish event, manage endpoints/subs, verify signature helper.
+- `hookline-python`: publish event, verify signature.
 - Требования: 80% покрытие тестами, примеры в `examples/`.
 
 2. **CLI v1.1**
@@ -143,8 +143,8 @@
 ### 4.3. Observability дополнения
 
 - Метрики streaming:
-  - `gatepulse_stream_clients`
-  - `gatepulse_stream_events_sent_total`
+  - `hookline_stream_clients`
+  - `hookline_stream_events_sent_total`
 
 - Логи connect/disconnect с tenant_id.
 
@@ -158,7 +158,7 @@
 
 ## v1.3 — HA / Multi-node (кластер без боли)
 
-**Цель:** GatePulse можно запускать в 2+ репликах с безопасной доставкой и без дублей “из-за гонок”.
+**Цель:** HookLine можно запускать в 2+ репликах с безопасной доставкой и без дублей “из-за гонок”.
 
 ### 5.1. Режимы HA
 

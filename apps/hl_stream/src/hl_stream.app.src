@@ -1,0 +1,12 @@
+{application, hl_stream, [
+    {description, "HookLine SSE Stream"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {hl_stream_app, []}},
+    {applications, [
+        kernel, stdlib,
+        cowboy
+    ]},
+    {env, []},
+    {modules, []}
+]}.

@@ -1,13 +1,13 @@
 version: "3.9"
 services:
-  gatepulse:
-    image: ghcr.io/gatepulse/gatepulse:latest
+  hookline:
+    image: ghcr.io/hookline/hookline:latest
     ports: ["8080:8080"]
     environment:
-      GP_API_KEY: dev-secret
-      GP_STORE_SOCKET: /run/gp_store.sock
+      HL_API_KEY: dev-secret
+      HL_STORE_SOCKET: /run/gp_store.sock
     volumes:
-      - gp-data:/var/lib/gatepulse
+      - gp-data:/var/lib/hookline
 
   receiver:
     build: .
@@ -15,7 +15,7 @@ services:
     environment:
       PORT: 3001
       WEBHOOK_SECRET: my-secret
-    depends_on: [gatepulse]
+    depends_on: [hookline]
 
 volumes:
   gp-data:

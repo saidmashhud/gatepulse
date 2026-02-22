@@ -1,4 +1,4 @@
-# Contributing to GatePulse
+# Contributing to HookLine
 
 Thank you for your interest in contributing! 🎉
 
@@ -13,8 +13,8 @@ Thank you for your interest in contributing! 🎉
 ### Getting Started
 
 ```bash
-git clone https://github.com/saidmashhud/gatepulse.git
-cd gatepulse
+git clone https://github.com/saidmashhud/hookline.git
+cd hookline
 
 # Build everything and run all tests
 make test
@@ -67,5 +67,5 @@ test: add queue lease reap tests
 
 ## Questions?
 
-Open a [GitHub Issue](https://github.com/saidmashhud/gatepulse/issues) or start a
-[GitHub Discussion](https://github.com/saidmashhud/gatepulse/discussions).
+Open a [GitHub Issue](https://github.com/saidmashhud/hookline/issues) or start a
+[GitHub Discussion](https://github.com/saidmashhud/hookline/discussions).

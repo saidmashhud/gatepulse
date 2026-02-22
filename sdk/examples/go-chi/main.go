@@ -1,4 +1,4 @@
-// GatePulse webhook receiver — Go + chi router
+// HookLine webhook receiver — Go + chi router
 //
 // Build: go build -o receiver .
 // Run:   WEBHOOK_SECRET=my-secret ./receiver
@@ -12,7 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/gatepulse/gatepulse-go/gatepulse"
+	"github.com/hookline/hookline-go/hookline"
 )
 
 var secret = os.Getenv("WEBHOOK_SECRET")
@@ -27,14 +27,14 @@ func main() {
 	})
 
 	// Use the built-in handler builder for simple cases
-	r.Post("/webhook", gatepulse.WebhookHandlerFunc(secret, handleEvent))
+	r.Post("/webhook", hookline.WebhookHandlerFunc(secret, handleEvent))
 
 	port := "3001"
-	log.Printf("GatePulse receiver on http://localhost:%s/webhook", port)
+	log.Printf("HookLine receiver on http://localhost:%s/webhook", port)
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }
 
-func handleEvent(event *gatepulse.WebhookEvent) error {
+func handleEvent(event *hookline.WebhookEvent) error {
 	log.Printf("Event received: topic=%s id=%s", event.Topic, event.ID)
 	b, _ := json.MarshalIndent(event.Payload, "  ", "  ")
 	log.Printf("  payload: %s", b)

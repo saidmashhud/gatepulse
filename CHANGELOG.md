@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to GatePulse will be documented in this file.
+All notable changes to HookLine will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial release of GatePulse
+- Initial release of HookLine
 - C11 append-only segmented log storage engine (`gp_store` daemon)
 - Erlang/OTP 27 umbrella project with 6 apps
 - HTTP API (Cowboy 2.x): events, endpoints, subscriptions, deliveries, DLQ, replay

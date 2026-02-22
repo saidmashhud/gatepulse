@@ -21,8 +21,8 @@ TEST_SRCS = $(TEST_DIR)/test_store.c \
             $(SRC_DIR)/ipc.c \
             $(SRC_DIR)/dlq.c
 
-DAEMON  = $(BUILD_DIR)/gp_store
-TESTS   = $(BUILD_DIR)/gp_store_tests
+DAEMON  = $(BUILD_DIR)/hl_store
+TESTS   = $(BUILD_DIR)/hl_store_tests
 
 .PHONY: all clean test daemon
 
@@ -42,4 +42,4 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 install: daemon
-	install -m 755 $(DAEMON) /usr/local/bin/gp_store
+	install -m 755 $(DAEMON) /usr/local/bin/hl_store

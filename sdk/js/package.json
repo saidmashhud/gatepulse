@@ -1,7 +1,7 @@
 {
-  "name": "gatepulse",
+  "name": "hookline",
   "version": "0.1.0",
-  "description": "GatePulse JavaScript/TypeScript SDK",
+  "description": "HookLine JavaScript/TypeScript SDK",
   "main": "dist/client.js",
   "types": "dist/client.d.ts",
   "files": ["dist", "src"],
@@ -15,6 +15,6 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/saidmashhud/gatepulse"
+    "url": "https://github.com/saidmashhud/hookline"
   }
 }

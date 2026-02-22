@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.backends.legacy:build"
 
 [project]
-name = "gatepulse"
+name = "hookline"
 version = "0.1.0"
-description = "GatePulse Python SDK"
+description = "HookLine Python SDK"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
@@ -15,4 +15,4 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/saidmashhud/gatepulse"
+Homepage = "https://github.com/saidmashhud/hookline"

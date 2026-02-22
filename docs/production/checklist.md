@@ -1,6 +1,6 @@
 # Production Checklist
 
-Use this checklist before going live with GatePulse.
+Use this checklist before going live with HookLine.
 
 ## Environment Variables
 
@@ -8,56 +8,56 @@ Use this checklist before going live with GatePulse.
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `GP_API_KEY` | Master API key — treat as a secret | `openssl rand -hex 32` |
-| `GP_DATA_DIR` | Persistent volume path | `/var/lib/gatepulse` |
+| `HL_API_KEY` | Master API key — treat as a secret | `openssl rand -hex 32` |
+| `HL_DATA_DIR` | Persistent volume path | `/var/lib/hookline` |
 
 ### Recommended
 
 | Variable | Default | Recommended |
 |----------|---------|-------------|
-| `GP_TENANT_ID` | `default` | Your org slug |
-| `GP_DELIVERY_WORKERS` | `16` | CPU count × 2 |
-| `GP_STORE_POOL_SIZE` | `8` | 8–16 |
-| `GP_MAX_PAYLOAD_BYTES` | `524288` | Keep at 512 KB |
-| `GP_MAX_QUEUE_DEPTH` | `100000` | Tune to your throughput |
-| `GP_RETENTION_SECS` | `604800` | 7–30 days |
-| `GP_COMPACT_INTERVAL_MS` | `3600000` | 1h |
-| `GP_MASTER_KEY` | — | Set for secret encryption (v2.0) |
+| `HL_TENANT_ID` | `default` | Your org slug |
+| `HL_DELIVERY_WORKERS` | `16` | CPU count × 2 |
+| `HL_STORE_POOL_SIZE` | `8` | 8–16 |
+| `HL_MAX_PAYLOAD_BYTES` | `524288` | Keep at 512 KB |
+| `HL_MAX_QUEUE_DEPTH` | `100000` | Tune to your throughput |
+| `HL_RETENTION_SECS` | `604800` | 7–30 days |
+| `HL_COMPACT_INTERVAL_MS` | `3600000` | 1h |
+| `HL_MASTER_KEY` | — | Set for secret encryption (v2.0) |
 
 ### Full Reference
 
 ```bash
-GP_PORT=8080
-GP_LISTEN_ADDR=0.0.0.0
-GP_API_KEY=<strong-random-key>
-GP_TENANT_ID=your-org
-GP_SINGLE_TENANT=true
+HL_PORT=8080
+HL_LISTEN_ADDR=0.0.0.0
+HL_API_KEY=<strong-random-key>
+HL_TENANT_ID=your-org
+HL_SINGLE_TENANT=true
 
 # Store
-GP_STORE_SOCKET=/run/gatepulse/gp_store.sock
-GP_DATA_DIR=/var/lib/gatepulse
-GP_STORE_POOL_SIZE=8
+HL_STORE_SOCKET=/run/hookline/gp_store.sock
+HL_DATA_DIR=/var/lib/hookline
+HL_STORE_POOL_SIZE=8
 
 # Delivery
-GP_DELIVERY_WORKERS=16
-GP_MAX_PAYLOAD_BYTES=524288
-GP_MAX_QUEUE_DEPTH=100000
-GP_MAX_INFLIGHT_GLOBAL=500
-GP_RETENTION_SECS=604800
-GP_COMPACT_INTERVAL_MS=3600000
+HL_DELIVERY_WORKERS=16
+HL_MAX_PAYLOAD_BYTES=524288
+HL_MAX_QUEUE_DEPTH=100000
+HL_MAX_INFLIGHT_GLOBAL=500
+HL_RETENTION_SECS=604800
+HL_COMPACT_INTERVAL_MS=3600000
 
 # Encryption (v2.0)
-GP_MASTER_KEY=<32-byte-hex>
+HL_MASTER_KEY=<32-byte-hex>
 ```
 
 ## Infrastructure Checklist
 
-- [ ] `GP_DATA_DIR` is on a **persistent volume** (not ephemeral container storage)
+- [ ] `HL_DATA_DIR` is on a **persistent volume** (not ephemeral container storage)
 - [ ] Volume has at least **50 GB** free (or autoscales)
 - [ ] Container restart policy is `unless-stopped` or `always`
 - [ ] `/healthz` and `/readyz` are wired to load balancer health checks
 - [ ] Prometheus scrape configured for port `8080/metrics`
-- [ ] Grafana dashboard imported (`grafana/dashboards/gatepulse.json`)
+- [ ] Grafana dashboard imported (`grafana/dashboards/hookline.json`)
 - [ ] Alert rules loaded (`prometheus/alerts.yml`)
 - [ ] Firewall: port `8080` accessible only from trusted networks
 
@@ -70,10 +70,10 @@ GP_MASTER_KEY=<32-byte-hex>
 
 ## Security
 
-- [ ] `GP_API_KEY` is not the default (`change-me` / `dev-secret`)
-- [ ] `GP_API_KEY` is injected via secrets manager (not hardcoded in yaml)
+- [ ] `HL_API_KEY` is not the default (`change-me` / `dev-secret`)
+- [ ] `HL_API_KEY` is injected via secrets manager (not hardcoded in yaml)
 - [ ] Endpoint `secret` fields set for HMAC verification on consumer side
-- [ ] `GP_MASTER_KEY` set and endpoint secrets encrypted (v2.0)
+- [ ] `HL_MASTER_KEY` set and endpoint secrets encrypted (v2.0)
 - [ ] TLS terminated at ingress/load balancer
 - [ ] `/v1/admin/*` endpoints not exposed publicly (restrict at network level)
 
@@ -94,8 +94,8 @@ Minimum alerts to configure (see `prometheus/alerts.yml`):
 Run the e2e test suite against your production-like environment:
 
 ```bash
-GP_URL=https://your-gatepulse.example.com \
-GP_API_KEY=your-production-key \
+HL_URL=https://your-hookline.example.com \
+HL_API_KEY=your-production-key \
 bash test/e2e.sh
 ```
 
@@ -110,4 +110,4 @@ All 16 scenarios must pass (SSE scenario may be skipped in restricted networks).
 | Storage | ~1 KB/event → 50 GB ≈ 50M events |
 | Memory | ~256 MB Erlang + ~128 MB C store |
 
-For higher throughput: increase `GP_DELIVERY_WORKERS`, run multiple API nodes (v1.3 HA), or use Postgres backend (v2.0).
+For higher throughput: increase `HL_DELIVERY_WORKERS`, run multiple API nodes (v1.3 HA), or use Postgres backend (v2.0).

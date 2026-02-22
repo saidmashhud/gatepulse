@@ -1,3 +1,3 @@
-module github.com/gatepulse/gatepulse-go
+module github.com/hookline/hookline-go
 
 go 1.21

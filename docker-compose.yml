@@ -1,27 +1,27 @@
 version: "3.9"
 
 services:
-  gatepulse:
+  hookline:
     build:
       context: .
       dockerfile: Dockerfile
-    image: gatepulse:latest
-    container_name: gatepulse
+    image: hookline:latest
+    container_name: hookline
     restart: unless-stopped
     ports:
       - "8080:8080"
     volumes:
-      - gp-data:/var/lib/gatepulse
+      - gp-data:/var/lib/hookline
     environment:
-      GP_PORT: "8080"
-      GP_LISTEN_ADDR: "0.0.0.0"
-      GP_STORE_SOCKET: "/run/gatepulse/gp_store.sock"
-      GP_DATA_DIR: "/var/lib/gatepulse"
-      GP_SINGLE_TENANT: "true"
-      GP_API_KEY: "${GP_API_KEY:-change-me-in-production}"
-      GP_TENANT_ID: "${GP_TENANT_ID:-default}"
-      GP_DELIVERY_WORKERS: "16"
-      GP_STORE_POOL_SIZE: "8"
+      HL_PORT: "8080"
+      HL_LISTEN_ADDR: "0.0.0.0"
+      HL_STORE_SOCKET: "/run/hookline/gp_store.sock"
+      HL_DATA_DIR: "/var/lib/hookline"
+      HL_SINGLE_TENANT: "true"
+      HL_API_KEY: "${HL_API_KEY:-change-me-in-production}"
+      HL_TENANT_ID: "${HL_TENANT_ID:-default}"
+      HL_DELIVERY_WORKERS: "16"
+      HL_STORE_POOL_SIZE: "8"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
       interval: 10s

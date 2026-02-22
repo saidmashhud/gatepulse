@@ -1,8 +1,8 @@
 /**
- * GatePulse JavaScript/TypeScript SDK
+ * HookLine JavaScript/TypeScript SDK
  */
 
-export interface GatePulseConfig {
+export interface HookLineConfig {
   baseUrl: string;
   apiKey: string;
 }
@@ -27,11 +27,11 @@ export interface CreateSubscriptionOptions {
   transform?: Array<Record<string, unknown>>;
 }
 
-export class GatePulseClient {
+export class HookLineClient {
   private baseUrl: string;
   private apiKey: string;
 
-  constructor(config: GatePulseConfig) {
+  constructor(config: HookLineConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
     this.apiKey = config.apiKey;
   }
@@ -52,7 +52,7 @@ export class GatePulseClient {
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.statusText }));
       throw new Error(
-        `GatePulse API error ${res.status}: ${JSON.stringify(err)}`
+        `HookLine API error ${res.status}: ${JSON.stringify(err)}`
       );
     }
     return res.json() as Promise<T>;
@@ -124,7 +124,7 @@ export class GatePulseClient {
   }
 
   /**
-   * Verify a webhook signature from GatePulse.
+   * Verify a webhook signature from HookLine.
    * @param payload - Raw request body bytes
    * @param signature - Value of x-gp-signature header
    * @param secret - Endpoint secret
