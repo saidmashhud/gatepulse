@@ -51,15 +51,19 @@ export function verifyWebhook(
 ): WebhookEvent {
   const sig = getHeader(headers, "x-gp-signature");
   if (!sig) throw new InvalidSignatureError("Missing x-gp-signature header");
+  const ts = getHeader(headers, "x-gp-timestamp");
+  if (!ts) throw new InvalidSignatureError("Missing x-gp-timestamp header");
 
   // Node.js path
   if (typeof require !== "undefined") {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const crypto = require("crypto") as typeof import("crypto");
     const raw = typeof body === "string" ? Buffer.from(body) : body;
+    // Signing input: "{timestamp_ms}.{body}"  (matches gp_core_signature.erl)
+    const input = Buffer.concat([Buffer.from(ts + "."), raw]);
     const expected =
-      "sha256=" +
-      crypto.createHmac("sha256", secret).update(raw).digest("hex");
+      "v1=" +
+      crypto.createHmac("sha256", secret).update(input).digest("hex");
     const sigBuf = Buffer.from(sig);
     const expBuf = Buffer.from(expected);
     if (
@@ -89,9 +93,17 @@ export async function verifyWebhookAsync(
 ): Promise<WebhookEvent> {
   const sig = getHeader(headers, "x-gp-signature");
   if (!sig) throw new InvalidSignatureError("Missing x-gp-signature header");
+  const ts = getHeader(headers, "x-gp-timestamp");
+  if (!ts) throw new InvalidSignatureError("Missing x-gp-timestamp header");
 
   const enc = new TextEncoder();
-  const raw = typeof body === "string" ? enc.encode(body) : body;
+  const rawBody = typeof body === "string" ? enc.encode(body) : new Uint8Array(body instanceof ArrayBuffer ? body : (body as ArrayBufferView).buffer);
+  // Signing input: "{timestamp_ms}.{body}"  (matches gp_core_signature.erl)
+  const prefix = enc.encode(ts + ".");
+  const input = new Uint8Array(prefix.length + rawBody.length);
+  input.set(prefix);
+  input.set(rawBody, prefix.length);
+
   const key = await crypto.subtle.importKey(
     "raw",
     enc.encode(secret),
@@ -99,11 +111,11 @@ export async function verifyWebhookAsync(
     false,
     ["sign"]
   );
-  const sigBytes = await crypto.subtle.sign("HMAC", key, raw);
+  const sigBytes = await crypto.subtle.sign("HMAC", key, input);
   const hex = Array.from(new Uint8Array(sigBytes))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  const expected = "sha256=" + hex;
+  const expected = "v1=" + hex;
 
   if (expected.length !== sig.length || expected !== sig) {
     throw new InvalidSignatureError();

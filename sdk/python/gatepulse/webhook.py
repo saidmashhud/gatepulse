@@ -59,12 +59,17 @@ def verify_webhook(
     sig = norm.get("x-gp-signature", "")
     if not sig:
         raise InvalidSignatureError("Missing x-gp-signature header")
+    ts = norm.get("x-gp-timestamp", "")
+    if not ts:
+        raise InvalidSignatureError("Missing x-gp-timestamp header")
 
     if isinstance(body, str):
         body = body.encode()
 
-    sig_hex = sig.removeprefix("sha256=")
-    expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    # Signing input: "{timestamp_ms}.{body}"  (matches gp_core_signature.erl)
+    signing_input = ts.encode() + b"." + body
+    sig_hex = sig.removeprefix("v1=")
+    expected = hmac.new(secret.encode(), signing_input, hashlib.sha256).hexdigest()
     if not hmac.compare_digest(expected, sig_hex):
         raise InvalidSignatureError("Signature mismatch")
 

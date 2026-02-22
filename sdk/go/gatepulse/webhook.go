@@ -45,13 +45,19 @@ func VerifyWebhook(body []byte, headers http.Header, secret string) (*WebhookEve
 	if sig == "" {
 		return nil, fmt.Errorf("%w: missing x-gp-signature header", ErrInvalidSignature)
 	}
-	sigHex := strings.TrimPrefix(sig, "sha256=")
+	ts := headers.Get("x-gp-timestamp")
+	if ts == "" {
+		return nil, fmt.Errorf("%w: missing x-gp-timestamp header", ErrInvalidSignature)
+	}
+	// Signing input: "{timestamp_ms}.{body}"  (matches gp_core_signature.erl)
+	sigHex := strings.TrimPrefix(sig, "v1=")
 	sigBytes, err := hex.DecodeString(sigHex)
 	if err != nil {
 		return nil, fmt.Errorf("%w: malformed signature", ErrInvalidSignature)
 	}
+	input := append([]byte(ts+"."), body...)
 	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write(body)
+	mac.Write(input)
 	expected := mac.Sum(nil)
 	if !hmac.Equal(sigBytes, expected) {
 		return nil, ErrInvalidSignature

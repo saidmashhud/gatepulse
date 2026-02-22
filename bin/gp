@@ -183,11 +183,34 @@ case "$cmd" in
       tail)
         parse_args "$@"
         ep="${ARGS[endpoint]:-}"
-        while true; do
-          qs="?limit=10${ep:+&endpoint_id=$ep}"
-          gp_get "/v1/deliveries$qs" | jq -r '.items[]? | "\(.started_at)\t\(.status)\t\(.http_status)\t\(.attempt_id)"'
-          sleep 2
-        done
+        echo "Tailing delivery attempts via SSE… Ctrl-C to stop"
+        curl -s -N \
+          -H "$(auth_header)" \
+          -H "Accept: text/event-stream" \
+          "${GP_URL}/v1/stream?topic=deliveries.status" \
+        | while IFS= read -r line; do
+            if [[ "$line" == data:* ]]; then
+              data="${line#data: }"
+              if [[ -n "$ep" ]]; then
+                match=$(echo "$data" | python3 -c "import sys,json; d=json.load(sys.stdin); print('yes' if d.get('endpoint_id','') == '$ep' else 'no')" 2>/dev/null || echo "yes")
+                [[ "$match" == "yes" ]] || continue
+              fi
+              echo "$data" | python3 -c "
+import sys, json, datetime
+d = json.load(sys.stdin)
+ts = datetime.datetime.fromtimestamp(d.get('ts',0)/1000).strftime('%H:%M:%S')
+ep_id = d.get('endpoint_id','')[-12:]
+status = d.get('status','')
+http = d.get('http_status','')
+ms = d.get('latency_ms','?')
+attempt = d.get('attempt_n', 1)
+ok = '\033[32m' if status == 'success' else '\033[31m'
+reset = '\033[0m'
+retry = f' [retry {attempt}]' if attempt > 1 else ''
+print(f'[{ts}] ep..{ep_id} → {ok}{status} {http}{reset} ({ms}ms){retry}')
+" 2>/dev/null || true
+            fi
+          done
         ;;
       *) usage; exit 1 ;;
     esac
@@ -374,13 +397,12 @@ CFG
 
   tail)
     parse_args "$@"
-    topic="${ARGS[topic]:-#}"
     ep="${ARGS[endpoint]:-}"
-    echo "Tailing SSE stream (topic: $topic)… Ctrl-C to stop"
+    echo "Tailing delivery attempts (SSE)… Ctrl-C to stop"
     curl -s -N \
       -H "$(auth_header)" \
       -H "Accept: text/event-stream" \
-      "${GP_URL}/v1/stream?topic=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$topic'))")" \
+      "${GP_URL}/v1/stream?topic=deliveries.status" \
     | while IFS= read -r line; do
         if [[ "$line" == data:* ]]; then
           data="${line#data: }"
@@ -388,8 +410,20 @@ CFG
             match=$(echo "$data" | python3 -c "import sys,json; d=json.load(sys.stdin); print('yes' if d.get('endpoint_id','') == '$ep' else 'no')" 2>/dev/null || echo "yes")
             [[ "$match" == "yes" ]] || continue
           fi
-          echo "$data" | python3 -m json.tool 2>/dev/null || echo "$data"
-          echo "---"
+          echo "$data" | python3 -c "
+import sys, json, datetime
+d = json.load(sys.stdin)
+ts = datetime.datetime.fromtimestamp(d.get('ts',0)/1000).strftime('%H:%M:%S')
+ep_id = d.get('endpoint_id','')[-12:]
+status = d.get('status','')
+http = d.get('http_status','')
+ms = d.get('latency_ms','?')
+attempt = d.get('attempt_n', 1)
+ok = '\033[32m' if status == 'success' else '\033[31m'
+reset = '\033[0m'
+retry = f' [retry {attempt}]' if attempt > 1 else ''
+print(f'[{ts}] ep..{ep_id} → {ok}{status} {http}{reset} ({ms}ms){retry}')
+" 2>/dev/null || true
         fi
       done
     ;;
