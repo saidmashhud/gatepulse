@@ -18,9 +18,11 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
  *    - HookLine deduplicates via event_id (= "kafka-{topic}-{partition}-{offset}")
  *    - Crash between publish and commit → record redelivered → HookLine deduplicates
  *
- *  Parallelism:
- *    - mapZIOParUnordered(parallelism) for concurrent publishes within a partition batch
- *    - ZIO Kafka handles partition-level ordering; parallelism across partitions is safe
+ *  Ordering:
+ *    - mapZIO (sequential) preserves intra-batch record order.
+ *    - This is critical for event streams where aggregate ordering matters
+ *      (e.g. payment.created must arrive before payment.authorized).
+ *    - ZIO Kafka provides partition-level ordering; mapZIO preserves it end-to-end.
  */
 object BridgeApp:
 
@@ -53,7 +55,7 @@ object BridgeApp:
           Serde.byteArray,
           Serde.byteArray
         )
-        .mapZIOParUnordered(cfg.parallelism) { record =>
+        .mapZIO { record =>
           val event = EventMapper.map(record, cfg.kafka)
           client
             .publish(event)

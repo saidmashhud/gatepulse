@@ -23,18 +23,20 @@ object HooklineClient:
       for
         client <- ZIO.service[Client]
         cfg    <- ZIO.service[BridgeConfig]
-      yield Live(client, cfg)
+        url    <- ZIO.fromEither(URL.decode(s"${cfg.hookline.url}/v1/events"))
+                    .mapError(e => new Exception(s"Invalid HOOKLINE_URL '${cfg.hookline.url}': $e"))
+                    .orDie   // bad URL is a configuration error — fail at startup, not per-request
+      yield Live(client, url, cfg.hookline.apiKey)
     )
 
-  private final class Live(client: Client, cfg: BridgeConfig) extends HooklineClient:
+  private final class Live(client: Client, eventsUrl: URL, apiKey: String) extends HooklineClient:
 
-    private val eventsPath = s"${cfg.hookline.url}/v1/events"
-    private val authHeader = Header.Authorization.Bearer(cfg.hookline.apiKey)
+    private val authHeader = Header.Authorization.Bearer(apiKey)
 
     def publish(event: HooklinePayload): Task[Unit] =
       val body = Body.fromString(event.toJson)
       val request = Request(
-        url     = URL.decode(eventsPath).getOrElse(URL.root),
+        url     = eventsUrl,
         method  = Method.POST,
         headers = Headers(authHeader, Header.ContentType(MediaType.application.json)),
         body    = body
