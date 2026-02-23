@@ -7,6 +7,7 @@
 -define(PUBLIC_PATHS, [
     <<"/healthz">>,
     <<"/readyz">>,
+    <<"/v1/health/embedded">>,
     <<"/metrics">>,
     <<"/openapi.yaml">>
 ]).
@@ -20,22 +21,47 @@ execute(Req, Env) ->
         true ->
             {ok, Req, Env};
         false ->
+            AuthMode = hl_config:get_str("HL_AUTH_MODE", "api_key"),
             case extract_token(Req) of
                 {ok, Token} ->
-                    case verify_token(Token) of
-                        {ok, TenantId} ->
-                            Scopes = get_scopes(Token),
-                            Req2 = cowboy_req:set_resp_header(
-                                       <<"x-tenant-id">>, TenantId, Req),
-                            Req3 = Req2#{tenant_id => TenantId, scopes => Scopes},
-                            Env2 = Env#{tenant_id => TenantId},
-                            {ok, Req3, Env2};
-                        {error, _} ->
-                            reply_unauthorized(Req, Env)
-                    end;
+                    authenticate(AuthMode, Token, Req, Env);
                 {error, _} ->
                     reply_unauthorized(Req, Env)
             end
+    end.
+
+%% service_token mode: shared secret proves caller identity;
+%% tenant is resolved from the mandatory X-Tenant-Id request header.
+%% Missing header → 400 (not 401) so callers get a clear error.
+authenticate("service_token", Token, Req, Env) ->
+    ServiceToken = list_to_binary(hl_config:get_str("HL_SERVICE_TOKEN", "")),
+    if
+        ServiceToken =:= <<>> orelse Token =/= ServiceToken ->
+            reply_unauthorized(Req, Env);
+        true ->
+            case cowboy_req:header(<<"x-tenant-id">>, Req, undefined) of
+                undefined ->
+                    reply_missing_tenant(Req, Env);
+                TenantId ->
+                    Scopes = [<<"*">>],
+                    Req2 = cowboy_req:set_resp_header(<<"x-tenant-id">>, TenantId, Req),
+                    Req3 = Req2#{tenant_id => TenantId, scopes => Scopes},
+                    Env2 = Env#{tenant_id => TenantId},
+                    {ok, Req3, Env2}
+            end
+    end;
+
+%% api_key mode (default): tenant is embedded in the token.
+authenticate(_Mode, Token, Req, Env) ->
+    case verify_token(Token) of
+        {ok, TenantId} ->
+            Scopes = get_scopes(Token),
+            Req2 = cowboy_req:set_resp_header(<<"x-tenant-id">>, TenantId, Req),
+            Req3 = Req2#{tenant_id => TenantId, scopes => Scopes},
+            Env2 = Env#{tenant_id => TenantId},
+            {ok, Req3, Env2};
+        {error, _} ->
+            reply_unauthorized(Req, Env)
     end.
 
 extract_token(Req) ->
@@ -45,26 +71,8 @@ extract_token(Req) ->
         _         -> {error, invalid_format}
     end.
 
+%% Used by api_key mode only. HL_ADMIN_KEY > HL_API_KEY > dynamic key store.
 verify_token(Token) ->
-    AuthMode      = hl_config:get_str("HL_AUTH_MODE", "api_key"),
-    case AuthMode of
-        "service_token" ->
-            %% Single shared secret for machine-to-machine calls (e.g. mashgate-webhook-delivery).
-            %% HL_SERVICE_TOKEN must be set; if blank, fall through to api_key mode.
-            ServiceToken  = list_to_binary(hl_config:get_str("HL_SERVICE_TOKEN", "")),
-            DefaultTenant = list_to_binary(hl_config:get_str("HL_TENANT_ID", "default")),
-            if
-                ServiceToken =/= <<>> andalso Token =:= ServiceToken ->
-                    {ok, DefaultTenant};
-                true ->
-                    {error, unauthorized}
-            end;
-        _ ->
-            %% Default api_key mode: HL_ADMIN_KEY > HL_API_KEY > dynamic key store
-            verify_token_api_key(Token)
-    end.
-
-verify_token_api_key(Token) ->
     AdminKey      = list_to_binary(hl_config:get_str("HL_ADMIN_KEY", "")),
     EnvKey        = list_to_binary(hl_config:get_str("HL_API_KEY", "dev-secret")),
     DefaultTenant = list_to_binary(hl_config:get_str("HL_TENANT_ID", "default")),
@@ -95,33 +103,23 @@ require_scope(Req, Scope) ->
             {stop, 403}
     end.
 
-%% Get scopes for a token.
-%%   HL_AUTH_MODE=service_token + HL_SERVICE_TOKEN  → [<<"*">>]  (trusted machine caller)
-%%   HL_ADMIN_KEY  → [<<"admin">>, <<"*">>]          (all scopes + admin-only ops)
-%%   HL_API_KEY    → [<<"*">>]                       (all scopes, backward compat)
+%% Get scopes for a token (api_key mode only).
+%% service_token callers receive [<<"*">>] directly in authenticate/4.
+%%   HL_ADMIN_KEY  → [<<"admin">>, <<"*">>]  (all scopes + admin-only ops)
+%%   HL_API_KEY    → [<<"*">>]               (all scopes, backward compat)
 %%   dynamic key   → whatever was set at creation
 get_scopes(Token) ->
-    AuthMode = hl_config:get_str("HL_AUTH_MODE", "api_key"),
-    case AuthMode of
-        "service_token" ->
-            ServiceToken = list_to_binary(hl_config:get_str("HL_SERVICE_TOKEN", "")),
-            if
-                ServiceToken =/= <<>> andalso Token =:= ServiceToken -> [<<"*">>];
-                true -> []
-            end;
-        _ ->
-            AdminKey = list_to_binary(hl_config:get_str("HL_ADMIN_KEY", "")),
-            EnvKey   = list_to_binary(hl_config:get_str("HL_API_KEY", "dev-secret")),
-            if
-                AdminKey =/= <<>> andalso Token =:= AdminKey ->
-                    [<<"admin">>, <<"*">>];
-                Token =:= EnvKey ->
-                    [<<"*">>];
-                true ->
-                    case hl_api_key_store:lookup_scopes(Token) of
-                        []     -> [];
-                        Scopes -> Scopes
-                    end
+    AdminKey = list_to_binary(hl_config:get_str("HL_ADMIN_KEY", "")),
+    EnvKey   = list_to_binary(hl_config:get_str("HL_API_KEY", "dev-secret")),
+    if
+        AdminKey =/= <<>> andalso Token =:= AdminKey ->
+            [<<"admin">>, <<"*">>];
+        Token =:= EnvKey ->
+            [<<"*">>];
+        true ->
+            case hl_api_key_store:lookup_scopes(Token) of
+                []     -> [];
+                Scopes -> Scopes
             end
     end.
 
@@ -132,6 +130,18 @@ reply_unauthorized(Req, Env) ->
     Body = jsx:encode(#{<<"error">> => <<"unauthorized">>,
                         <<"code">>  => <<"AUTH_REQUIRED">>}),
     Req2 = cowboy_req:reply(401,
+        #{<<"content-type">> => <<"application/json">>},
+        Body, Req),
+    {stop, Req2, Env}.
+
+reply_missing_tenant(Req, Env) ->
+    logger:warning(#{event => missing_tenant_header,
+                     path  => cowboy_req:path(Req)}),
+    Body = jsx:encode(#{<<"error">> => <<"missing_tenant">>,
+                        <<"code">>  => <<"X_TENANT_ID_REQUIRED">>,
+                        <<"message">> =>
+                            <<"X-Tenant-Id header is required in service_token auth mode">>}),
+    Req2 = cowboy_req:reply(400,
         #{<<"content-type">> => <<"application/json">>},
         Body, Req),
     {stop, Req2, Env}.

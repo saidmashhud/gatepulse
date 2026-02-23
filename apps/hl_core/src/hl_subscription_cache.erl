@@ -4,7 +4,7 @@
 -module(hl_subscription_cache).
 -behaviour(gen_server).
 
--export([start_link/0, match/2, add/1, remove/2]).
+-export([start_link/0, match/2, add/1, remove/2, load_tenant/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          handle_continue/2, terminate/2, code_change/3]).
 
@@ -28,6 +28,11 @@ add(Sub) ->
 remove(TenantId, SubId) ->
     ets:delete(?TABLE, {TenantId, SubId}).
 
+%% Load (or reload) all subscriptions for a single tenant into the cache.
+%% Called after dynamic tenant creation in service_token mode.
+load_tenant(TenantId) ->
+    gen_server:cast(?MODULE, {load_tenant, TenantId}).
+
 %% ── gen_server ───────────────────────────────────────────────────────────────
 
 init([]) ->
@@ -35,22 +40,36 @@ init([]) ->
     {ok, #{}, {continue, load}}.
 
 handle_continue(load, State) ->
-    TenantId = list_to_binary(hl_config:get_str("HL_TENANT_ID", "default")),
-    case hl_store_client:list_subscriptions(TenantId) of
-        {ok, #{<<"items">> := Subs}} ->
-            lists:foreach(fun(Sub) ->
-                add(decode_sub(Sub))
-            end, Subs);
+    case hl_config:get_str("HL_AUTH_MODE", "api_key") of
+        "service_token" ->
+            %% Multi-tenant embedded mode: warm cache for ALL active tenants.
+            lists:foreach(fun(#{<<"tenant_id">> := TId}) ->
+                load_tenant_subs(TId)
+            end, hl_tenant_store:list());
         _ ->
-            ok
+            %% Single-tenant / api_key mode: load the configured default tenant.
+            TenantId = list_to_binary(hl_config:get_str("HL_TENANT_ID", "default")),
+            load_tenant_subs(TenantId)
     end,
     {noreply, State}.
 
 handle_call(_Req, _From, State) -> {reply, ok, State}.
+
+handle_cast({load_tenant, TenantId}, State) ->
+    load_tenant_subs(TenantId),
+    {noreply, State};
 handle_cast(_Msg, State) -> {noreply, State}.
 handle_info(_Msg, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
+
+load_tenant_subs(TenantId) ->
+    case hl_store_client:list_subscriptions(TenantId) of
+        {ok, #{<<"items">> := Subs}} ->
+            lists:foreach(fun(Sub) -> add(decode_sub(Sub)) end, Subs);
+        _ ->
+            ok
+    end.
 
 decode_sub(Sub) when is_map(Sub) -> Sub;
 decode_sub(B) when is_binary(B)  -> jsx:decode(B, [return_maps]).

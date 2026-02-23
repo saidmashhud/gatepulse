@@ -32,6 +32,15 @@ handle(<<"POST">>, undefined, undefined, Req0, Opts) ->
     end,
     case hl_tenant_store:create(TenantId, Name) of
         {ok, TId} ->
+            %% In service_token embedded mode, warm caches for the new tenant
+            %% so it can receive events immediately without a restart.
+            case hl_config:get_str("HL_AUTH_MODE", "api_key") of
+                "service_token" ->
+                    hl_subscription_cache:load_tenant(TId),
+                    hl_tenant_manager:load_tenant(TId);
+                _ ->
+                    ok
+            end,
             {ok, Tenant} = hl_tenant_store:get(TId),
             reply_json(201, Tenant, Req1, Opts);
         {error, already_exists} ->
@@ -39,6 +48,14 @@ handle(<<"POST">>, undefined, undefined, Req0, Opts) ->
                                <<"Tenant already exists">>),
             {ok, Req0, Opts}
     end;
+
+%%--------------------------------------------------------------------
+%% GET /v1/tenants — list all active tenants
+%%--------------------------------------------------------------------
+handle(<<"GET">>, undefined, undefined, Req0, Opts) ->
+    Tenants = hl_tenant_store:list(),
+    reply_json(200, #{<<"tenants">> => Tenants,
+                      <<"total">>   => length(Tenants)}, Req0, Opts);
 
 %%--------------------------------------------------------------------
 %% GET /v1/tenants/:id — get

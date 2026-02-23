@@ -22,4 +22,22 @@ init(Req0, #{check := readiness} = Opts) ->
     Req = cowboy_req:reply(Status,
         #{<<"content-type">> => <<"application/json">>},
         Body, Req0),
+    {ok, Req, Opts};
+
+init(Req0, #{check := embedded} = Opts) ->
+    %% Returns current auth/embedding configuration.
+    %% Useful for Mashgate webhook-delivery to verify service_token mode is active
+    %% before attempting to publish.  Public path — no auth required.
+    AuthMode     = list_to_binary(hl_config:get_str("HL_AUTH_MODE", "api_key")),
+    WriterId     = list_to_binary(hl_config:get_str("HL_WRITER_ID", "")),
+    SingleTenant = list_to_binary(hl_config:get_str("HL_SINGLE_TENANT", "true")),
+    Body = jsx:encode(#{
+        <<"embedded">>      => AuthMode =:= <<"service_token">>,
+        <<"auth_mode">>     => AuthMode,
+        <<"writer_id">>     => WriterId,
+        <<"single_tenant">> => SingleTenant =:= <<"true">>
+    }),
+    Req = cowboy_req:reply(200,
+        #{<<"content-type">> => <<"application/json">>},
+        Body, Req0),
     {ok, Req, Opts}.

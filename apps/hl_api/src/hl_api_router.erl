@@ -11,6 +11,7 @@ routes() ->
         %% Health
         {"/healthz",                           hl_api_h_health,    #{check => liveness}},
         {"/readyz",                            hl_api_h_health,    #{check => readiness}},
+        {"/v1/health/embedded",               hl_api_h_health,    #{check => embedded}},
         %% Metrics
         {"/metrics",                           hl_api_h_metrics,   #{}},
         %% OpenAPI
