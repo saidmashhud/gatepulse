@@ -33,22 +33,9 @@ parse_addr(Addr) ->
     IP.
 
 validate_auth_config() ->
-    case hl_config:get_str("HL_AUTH_MODE", "api_key") of
-        "service_token" ->
-            require_nonempty("HL_SERVICE_TOKEN");
-        "api_key" ->
-            ApiKey = hl_config:get_str("HL_API_KEY", ""),
-            AdminKey = hl_config:get_str("HL_ADMIN_KEY", ""),
-            case ApiKey =/= "" orelse AdminKey =/= "" of
-                true  -> ok;
-                false -> {error, missing_api_or_admin_key}
-            end;
-        Mode ->
-            {error, {unsupported_auth_mode, Mode}}
-    end.
-
-require_nonempty(Name) ->
-    case hl_config:get_str(Name, "") of
-        "" -> {error, {missing_env, Name}};
-        _  -> ok
+    ApiKey   = hl_config:get_str("HL_API_KEY", ""),
+    AdminKey = hl_config:get_str("HL_ADMIN_KEY", ""),
+    case ApiKey =/= "" orelse AdminKey =/= "" of
+        true  -> ok;
+        false -> {error, missing_api_or_admin_key}
     end.

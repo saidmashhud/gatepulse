@@ -8,7 +8,8 @@
         jsx,
         uuid,
         crypto,
-        hl_store_client
+        hl_store_client,
+        hl_presence
     ]},
     {env, []},
     {modules, []}

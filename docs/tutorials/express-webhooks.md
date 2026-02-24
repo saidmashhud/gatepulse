@@ -173,5 +173,5 @@ curl -X POST http://localhost:8080/v1/dlq/<job_id>/requeue \
 ## Next steps
 
 - [FastAPI tutorial](./fastapi-webhooks.md)
-- [Self-hosted production setup](./self-hosted-setup.md)
-- [API reference](https://localhost:8080/openapi)
+- [Production checklist](../production/checklist.md)
+- [API reference](http://localhost:8080/openapi.yaml)

@@ -1,120 +1,37 @@
 # Secrets Rotation
 
-HookLine v2.0 encrypts endpoint webhook secrets at rest using AES-256-GCM.
-This guide covers initial setup, key rotation, and emergency procedures.
+## Current status
 
-## Initial Setup
+`POST /v1/admin/rotate-secrets` exists, but full secrets-at-rest rotation workflow is
+**not GA** in the current runtime.
 
-Set `HL_MASTER_KEY` to a 32-byte hex string before starting HookLine with encryption enabled:
+Operationally, treat endpoint webhook secrets as sensitive application data in the
+primary HookLine store and protect them with infrastructure controls.
 
-```bash
-# Generate a new key
-export HL_MASTER_KEY=$(openssl rand -hex 32)
+## Recommended production controls (current)
 
-# Persist it securely (example: write to a secrets manager)
-echo "HL_MASTER_KEY=$HL_MASTER_KEY" >> /etc/hookline/secrets.env
-chmod 600 /etc/hookline/secrets.env
-```
+1. Use strong, per-endpoint webhook secrets.
+2. Rotate endpoint secrets at application level via `PATCH /v1/endpoints/:id`.
+3. Protect `HL_DATA_DIR` with filesystem/disk encryption and strict access controls.
+4. Restrict `/v1/admin/*` endpoints to trusted networks/operators.
+5. Store bootstrap secrets (`HL_API_KEY`, service tokens) in a real secret manager.
 
-> **Never commit `HL_MASTER_KEY` to version control.**
-
-When `HL_MASTER_KEY` is set, all new endpoint secrets are encrypted before storage.
-To encrypt existing plaintext secrets from a v1.x deployment, call the rotate endpoint after upgrade.
-
-## Rotating the Master Key
-
-Key rotation re-encrypts all endpoint secrets without downtime:
-
-### 1. Set the new key
+## Endpoint-level secret rotation (supported)
 
 ```bash
-export HL_MASTER_KEY_NEW=$(openssl rand -hex 32)
+curl -X PATCH http://localhost:8080/v1/endpoints/<endpoint_id> \
+  -H "Authorization: Bearer $HL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"secret":"new-strong-secret"}'
 ```
 
-### 2. Call the rotate API
+After rotating:
 
-```bash
-curl -X POST http://localhost:8080/v1/admin/rotate-secrets \
-  -H "Authorization: Bearer $HL_API_KEY"
-```
+1. Update the consumer-side verification secret.
+2. Keep old secret briefly only if your rollout requires overlap.
+3. Monitor delivery failures/signature mismatches during the transition.
 
-This endpoint:
-1. Reads all endpoints from the store
-2. Decrypts each secret with the current `HL_MASTER_KEY`
-3. Re-encrypts each secret with `HL_MASTER_KEY_NEW`
-4. Writes the updated endpoint records back to the store
+## Future direction
 
-The operation is atomic per endpoint. If interrupted, re-run — it is idempotent.
-
-### 3. Update the running configuration
-
-```bash
-export HL_MASTER_KEY=$HL_MASTER_KEY_NEW
-# Restart or reload HookLine to pick up the new key
-```
-
-## Key Storage
-
-Recommended secret management integrations:
-
-| Platform | Method |
-|----------|--------|
-| AWS | SSM Parameter Store (SecureString) or Secrets Manager |
-| GCP | Secret Manager |
-| HashiCorp Vault | `kv-v2` or `transit` (use transit for envelope encryption) |
-| Kubernetes | Sealed Secrets or external-secrets operator |
-| Self-hosted | `gpg`-encrypted file loaded at startup |
-
-### Kubernetes example (external-secrets)
-
-```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: hookline-master-key
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: vault-backend
-    kind: ClusterSecretStore
-  target:
-    name: hookline-secret
-    creationPolicy: Owner
-  data:
-    - secretKey: HL_MASTER_KEY
-      remoteRef:
-        key: secret/hookline/master-key
-        property: value
-```
-
-## Verifying Encryption
-
-After rotation, confirm no plaintext secrets are stored:
-
-```bash
-# For C store backend — scan segment files
-strings /var/lib/hookline/seg-*.gps | grep -E '"secret"\s*:\s*"[^*]' | wc -l
-# Should print 0
-
-# For Postgres backend
-SELECT id, url, LEFT(secret_enc, 8) FROM endpoints;
-# All secret_enc values should start with "v1:" (versioned ciphertext prefix)
-```
-
-## Emergency: Key Loss
-
-If `HL_MASTER_KEY` is lost:
-
-1. **Endpoints continue to deliver** — the key is only needed to decrypt secrets for new deliveries. In-flight jobs carry the plaintext secret in memory (not persisted).
-2. Affected endpoints must have their secrets reset via `PATCH /v1/endpoints/:id` with a new `secret` value.
-3. Notify endpoint owners to update their signature verification secret.
-
-> There is no recovery path if the master key is lost and secrets are needed again — this is by design (encryption at rest).
-
-## Audit Trail
-
-Every call to `POST /v1/admin/rotate-secrets` is recorded in the audit log:
-
-```bash
-gp admin audit --limit 10 | jq '.items[] | select(.action == "secrets.rotated")'
-```
+The project keeps `HL_MASTER_KEY` and rotate API surface for future hardening, but
+you should not rely on them today as a complete at-rest key management system.

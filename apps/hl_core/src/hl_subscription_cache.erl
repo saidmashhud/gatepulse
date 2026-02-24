@@ -30,12 +30,11 @@ remove(TenantId, SubId) ->
     ets:delete(?TABLE, {TenantId, SubId}).
 
 %% Load (or reload) all subscriptions for a single tenant into the cache.
-%% Called after dynamic tenant creation in service_token mode.
+%% Called after tenant creation and on startup in multi-tenant mode.
 load_tenant(TenantId) ->
     gen_server:cast(?MODULE, {load_tenant, TenantId}).
 
-%% Synchronous variant used when a tenant is auto-materialized at request time.
-%% Ensures cache is warm before continuing request processing.
+%% Synchronous variant — ensures cache is warm before continuing.
 load_tenant_sync(TenantId) ->
     gen_server:call(?MODULE, {load_tenant_sync, TenantId}).
 
@@ -76,9 +75,9 @@ maybe_warm_cache() ->
     end.
 
 warm_cache() ->
-    case hl_config:get_str("HL_AUTH_MODE", "api_key") of
-        "service_token" ->
-            %% Multi-tenant embedded mode: warm cache for ALL active tenants.
+    case hl_config:get_str("HL_SINGLE_TENANT", "true") of
+        "false" ->
+            %% Multi-tenant mode: warm cache for ALL active tenants.
             case tenant_list() of
                 {ok, Tenants} ->
                     lists:foreach(fun(#{<<"tenant_id">> := TId}) ->
@@ -89,7 +88,7 @@ warm_cache() ->
                     retry
             end;
         _ ->
-            %% Single-tenant / api_key mode: load the configured default tenant.
+            %% Single-tenant mode: load the configured default tenant.
             TenantId = list_to_binary(hl_config:get_str("HL_TENANT_ID", "default")),
             load_tenant_subs(TenantId),
             ok

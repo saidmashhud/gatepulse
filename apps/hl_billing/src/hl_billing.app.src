@@ -1,0 +1,19 @@
+{application, hl_billing, [
+    {description, "HookLine Billing — quota enforcement, usage tracking, invoicing"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {hl_billing_app, []}},
+    {applications, [
+        kernel, stdlib,
+        jsx,
+        prometheus,
+        hl_core,
+        hl_store_client
+    ]},
+    {env, [
+        {enabled, false},
+        {counter_flush_interval_ms, 60000},
+        {default_plan, <<"free">>}
+    ]},
+    {modules, []}
+]}.

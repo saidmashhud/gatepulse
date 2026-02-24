@@ -1,0 +1,34 @@
+-module(hl_api_h_docs).
+-export([init/2]).
+
+init(Req0, Opts) ->
+    Html = swagger_ui_html(),
+    Req = cowboy_req:reply(200,
+        #{<<"content-type">> => <<"text/html; charset=utf-8">>},
+        Html, Req0),
+    {ok, Req, Opts}.
+
+swagger_ui_html() ->
+    <<"<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"UTF-8\">
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+  <title>HookLine API Docs</title>
+  <link rel=\"stylesheet\" href=\"https://unpkg.com/swagger-ui-dist@5/swagger-ui.css\">
+</head>
+<body>
+  <div id=\"swagger-ui\"></div>
+  <script src=\"https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js\"></script>
+  <script>
+    SwaggerUIBundle({
+      url: \"/openapi.yaml\",
+      dom_id: \"#swagger-ui\",
+      presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
+      layout: \"BaseLayout\",
+      deepLinking: true
+    });
+  </script>
+</body>
+</html>
+">>.

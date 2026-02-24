@@ -13,9 +13,9 @@ You need to send webhooks to your users. Here are your options.
 | **Signature verification** | Custom | HMAC-SHA256, SDKs ✓ | ✓ | ✓ |
 | **Live delivery stream** | No | SSE ✓ | ✓ | ✓ |
 | **Web UI** | No | Built-in ✓ | ✓ | ✓ |
-| **Open source** | N/A | MIT ✓ | No | No |
+| **Open source** | N/A | Apache 2.0 ✓ | No | No |
 | **Audit log** | Custom | Built-in ✓ | ✓ | ✓ |
-| **Multi-tenant** | Custom | Roadmap | ✓ | ✓ |
+| **Multi-tenant** | Custom | v2.0+ ✓ | ✓ | ✓ |
 
 ## When HookLine makes sense
 
@@ -25,13 +25,13 @@ You need to send webhooks to your users. Here are your options.
 
 **Already have Erlang/OTP.** HookLine is a native OTP application. If you run Erlang, you can embed it directly in your umbrella.
 
-**You want to own the code.** MIT license, no vendor lock-in, no pricing changes, no sunset risk.
+**You want to own the code.** Apache 2.0 license, no vendor lock-in, no pricing changes, no sunset risk.
 
 ## When HookLine does NOT make sense
 
 **You need it working in 20 minutes and never want to think about ops.** Use Svix or Hookdeck. They are excellent products and the time you save on setup is worth the cost at low volumes.
 
-**You need multi-tenant webhooks today.** HookLine v1.x is single-tenant per deployment. Multi-tenancy (shared infrastructure, per-customer API keys, usage metering) is on the v2.0 roadmap. If you need it now, use a managed service.
+**You need multi-tenant webhooks with usage metering today.** HookLine v2.0 ships multi-tenancy with shared infrastructure and per-tenant API keys. Usage metering and per-tenant billing are not built in — if you need those, a managed service is a better fit.
 
 **Your team does not know Erlang.** HookLine is operational simplicity once deployed, but debugging requires reading Erlang logs. Consider whether your on-call team can handle that.
 

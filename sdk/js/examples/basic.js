@@ -42,7 +42,7 @@ async function main() {
   // 3. Publish an event
   const event = await client.publishEvent({
     topic: "orders.created",
-    data: { order_id: "ord_123", amount: 99.99, currency: "USD" },
+    payload: { order_id: "ord_123", amount: 99.99, currency: "USD" },
   });
   console.log("Published event:", event.id);
 

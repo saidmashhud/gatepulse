@@ -32,6 +32,7 @@ type Client struct {
 	Endpoints     *EndpointsService
 	Subscriptions *SubscriptionsService
 	DLQ           *DLQService
+	Admin         *AdminService
 }
 
 // New creates a HookLine client.
@@ -47,6 +48,7 @@ func New(baseURL, apiKey string) *Client {
 	c.Endpoints = &EndpointsService{c}
 	c.Subscriptions = &SubscriptionsService{c}
 	c.DLQ = &DLQService{c}
+	c.Admin = &AdminService{Tenants: &TenantsService{c}}
 	return c
 }
 
@@ -315,4 +317,23 @@ func (s *DLQService) Requeue(ctx context.Context, jobID string) error {
 
 func (s *DLQService) Delete(ctx context.Context, jobID string) error {
 	return s.c.do(ctx, http.MethodDelete, "/v1/dlq/"+jobID, nil, nil)
+}
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+
+// Connect opens a WebSocket connection to HookLine and returns a WSClient.
+// The caller must call WSClient.Connect() on the returned value (or use
+// ConnectWS which does both).
+func (c *Client) Connect(opts WSOptions) *WSClient {
+	return newWSClient(c.baseURL, c.apiKey, opts)
+}
+
+// ConnectWS opens a WebSocket connection and starts the read loop.
+// Returns the connected WSClient or an error.
+func (c *Client) ConnectWS(opts WSOptions) (*WSClient, error) {
+	wsc := newWSClient(c.baseURL, c.apiKey, opts)
+	if err := wsc.Connect(); err != nil {
+		return nil, err
+	}
+	return wsc, nil
 }

@@ -1,6 +1,9 @@
 /**
  * HookLine JavaScript/TypeScript SDK
  */
+import { HooklineWS } from "./ws";
+import type { HooklineWSOptions } from "./ws";
+import { AdminClient } from "./admin";
 
 export interface HookLineConfig {
   baseUrl: string;
@@ -9,7 +12,9 @@ export interface HookLineConfig {
 
 export interface PublishEventOptions {
   topic: string;
-  data: Record<string, unknown>;
+  payload?: Record<string, unknown>;
+  /** @deprecated Use `payload` */
+  data?: Record<string, unknown>;
   idempotencyKey?: string;
   occurredAt?: number;
 }
@@ -30,10 +35,12 @@ export interface CreateSubscriptionOptions {
 export class HookLineClient {
   private baseUrl: string;
   private apiKey: string;
+  readonly admin: AdminClient;
 
   constructor(config: HookLineConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
     this.apiKey = config.apiKey;
+    this.admin = new AdminClient(this.request.bind(this));
   }
 
   private async request<T>(
@@ -59,9 +66,10 @@ export class HookLineClient {
   }
 
   async publishEvent(opts: PublishEventOptions): Promise<Record<string, unknown>> {
+    const eventPayload = opts.payload ?? opts.data ?? {};
     const payload: Record<string, unknown> = {
       topic: opts.topic,
-      data: opts.data,
+      payload: eventPayload,
     };
     if (opts.idempotencyKey) payload.idempotency_key = opts.idempotencyKey;
     if (opts.occurredAt) payload.occurred_at = opts.occurredAt;
@@ -166,5 +174,15 @@ export class HookLineClient {
   subscribeStream(topic = "#"): EventSource {
     const url = `${this.baseUrl}/v1/stream?topic=${encodeURIComponent(topic)}`;
     return new EventSource(url);
+  }
+
+  /**
+   * Open a bidirectional WebSocket connection to HookLine.
+   * Returns a connected HooklineWS instance.
+   */
+  connect(opts: HooklineWSOptions): HooklineWS {
+    let wsUrl = this.baseUrl.replace(/^http/, "ws") + `/v1/ws?token=${this.apiKey}`;
+    if (opts.topics?.length) wsUrl += `&topics=${opts.topics.join(",")}`;
+    return new HooklineWS(wsUrl, opts).connect();
   }
 }

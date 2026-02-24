@@ -116,7 +116,7 @@ handle_publish_local(TId, Body, Req1, Opts, Traceparent, Tracestate) ->
                     end,
                     case hl_core:publish_event(TId, Map2) of
                         {ok, Event} ->
-                            reply_json(201, Event, Req1, Opts);
+                            reply_json_with_quota(201, Event, TId, Req1, Opts);
                         {ok, Event, deduped} ->
                             reply_json(200,
                                 Event#{<<"deduped">> => true}, Req1, Opts);
@@ -175,6 +175,30 @@ qs_int64(QS, Key, Default) ->
         undefined -> Default;
         <<>>      -> Default;
         V -> try binary_to_integer(V) catch _:_ -> Default end
+    end.
+
+reply_json_with_quota(Status, Body, TenantId, Req, Opts) ->
+    ExtraHeaders = case hl_billing:get_quota_info(TenantId) of
+        {ok, #{remaining := Rem, limit := Lim, reset_at := Reset}} ->
+            quota_headers(Rem, Lim, Reset);
+        _ ->
+            #{}
+    end,
+    Resp = cowboy_req:reply(Status,
+        ExtraHeaders#{<<"content-type">> => <<"application/json">>},
+        jsx:encode(Body), Req),
+    {ok, Resp, Opts}.
+
+quota_headers(null, _Lim, Reset) ->
+    #{<<"x-ratelimit-reset">> => integer_to_binary(Reset)};
+quota_headers(Rem, Lim, Reset) ->
+    Base = #{
+        <<"x-ratelimit-remaining">> => integer_to_binary(Rem),
+        <<"x-ratelimit-reset">>     => integer_to_binary(Reset)
+    },
+    case Lim > 0 andalso (Rem / max(1, Lim)) =< 0.1 of
+        true  -> Base#{<<"x-quota-warning">> => <<"quota above 90% consumed">>};
+        false -> Base
     end.
 
 reply_json(Status, Body, Req, Opts) ->

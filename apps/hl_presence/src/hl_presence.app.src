@@ -1,0 +1,8 @@
+{application, hl_presence, [
+    {description, "HookLine presence system"},
+    {vsn, "0.1.0"},
+    {registered, [hl_presence, hl_presence_pubsub]},
+    {mod, {hl_presence_app, []}},
+    {applications, [kernel, stdlib, jsx]},
+    {env, []}
+]}.

@@ -1,7 +1,9 @@
 package io.hookline
 
 import io.hookline.HookLineError.*
+import io.hookline.admin.{AdminClient, LiveAdminClient}
 import io.hookline.models.*
+import io.hookline.ws.HookLineWS
 import zio.*
 import zio.http.*
 import zio.http.Header.Authorization
@@ -47,6 +49,13 @@ trait HookLineClient:
 
   // ─── Health ──────────────────────────────────────────────────────────────
   def health(): IO[HookLineError, Json]
+
+  // ─── Admin ───────────────────────────────────────────────────────────────
+  def admin: AdminClient
+
+  // ─── WebSocket ───────────────────────────────────────────────────────────
+  /** Open a scoped WebSocket connection to HookLine. */
+  def connectWS(): ZIO[Scope, HookLineError, HookLineWS]
 
 object HookLineClient:
 
@@ -94,11 +103,11 @@ object HookLineClient:
     private def urlFor(path: String): URL =
       baseUrl.path(Path.decode(path))
 
-    private def get[A: JsonDecoder](path: String): IO[HookLineError, A] =
+    private[hookline] def get[A: JsonDecoder](path: String): IO[HookLineError, A] =
       val req = Request(url = urlFor(path), method = Method.GET, headers = baseHeaders)
       execute(req).flatMap(decodeBody[A])
 
-    private def post[B: JsonEncoder, A: JsonDecoder](path: String, body: B): IO[HookLineError, A] =
+    private[hookline] def post[B: JsonEncoder, A: JsonDecoder](path: String, body: B): IO[HookLineError, A] =
       val req = Request(
         url     = urlFor(path),
         method  = Method.POST,
@@ -116,7 +125,7 @@ object HookLineClient:
       )
       execute(req).flatMap(decodeBody[A])
 
-    private def delete(path: String): IO[HookLineError, Unit] =
+    private[hookline] def delete(path: String): IO[HookLineError, Unit] =
       val req = Request(url = urlFor(path), method = Method.DELETE, headers = baseHeaders)
       execute(req).unit
 
@@ -211,3 +220,12 @@ object HookLineClient:
 
     def health(): IO[HookLineError, Json] =
       get[Json]("/healthz")
+
+    // ── Admin ──
+
+    lazy val admin: AdminClient = LiveAdminClient(this)
+
+    // ── WebSocket ──
+
+    def connectWS(): ZIO[Scope, HookLineError, HookLineWS] =
+      HookLineWS.connect(baseUrl.encode, apiKey)

@@ -11,12 +11,28 @@ HookLine delivers webhooks as `POST` requests with the following headers:
 | `Content-Type` | `application/json` |
 | `x-gp-event-id` | Unique event ID |
 | `x-gp-topic` | Event topic (e.g. `orders.created`) |
-| `x-gp-tenant-id` | Tenant identifier |
+| `x-gp-delivery-id` | Unique delivery attempt identifier |
 | `x-gp-timestamp` | Unix millisecond timestamp |
 | `x-gp-signature` | HMAC-SHA256 signature (if endpoint has a secret) |
-| `x-gp-attempt` | Delivery attempt number (1-based) |
+| `traceparent` | W3C trace context (optional) |
+| `tracestate` | W3C trace state (optional) |
 
-The body is the raw JSON event payload.
+The body is a JSON envelope with delivery metadata and event payload:
+
+```json
+{
+  "hookline_version": "1",
+  "job_id": "...",
+  "event_id": "...",
+  "attempt_id": "...",
+  "attempt": 1,
+  "event": {
+    "id": "...",
+    "topic": "orders.created",
+    "payload": {}
+  }
+}
+```
 
 ## Verifying signatures
 
@@ -35,8 +51,11 @@ The signature is computed as:
 ```javascript
 const crypto = require("crypto");
 
-function verifySignature(rawBody, timestamp, signatureHeader, secret) {
-  const signedPayload = `${timestamp}.${rawBody}`;
+function verifySignature(rawBodyBuffer, timestamp, signatureHeader, secret) {
+  const signedPayload = Buffer.concat([
+    Buffer.from(`${timestamp}.`),
+    rawBodyBuffer
+  ]);
   const expected = "v1=" + crypto
     .createHmac("sha256", secret)
     .update(signedPayload)
@@ -54,7 +73,8 @@ app.post("/webhook", express.raw({ type: "*/*" }), (req, res) => {
   if (!ts || !sig || !verifySignature(req.body, ts, sig, process.env.WEBHOOK_SECRET)) {
     return res.status(401).json({ error: "invalid signature" });
   }
-  const event = JSON.parse(req.body);
+  const envelope = JSON.parse(req.body.toString("utf8"));
+  const event = envelope.event;
   // ... process event
   res.json({ ok: true });
 });
@@ -80,7 +100,8 @@ async def webhook(request: Request):
     sig = request.headers.get("x-gp-signature", "")
     if not ts or not verify_signature(body, ts, sig, os.environ["WEBHOOK_SECRET"]):
         return JSONResponse({"error": "invalid signature"}, status_code=401)
-    event = json.loads(body)
+    envelope = json.loads(body)
+    event = envelope["event"]
     # ... process event
     return {"ok": True}
 ```

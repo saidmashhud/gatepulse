@@ -22,7 +22,7 @@ Use this checklist before going live with HookLine.
 | `HL_MAX_QUEUE_DEPTH` | `100000` | Tune to your throughput |
 | `HL_RETENTION_SECS` | `604800` | 7–30 days |
 | `HL_COMPACT_INTERVAL_MS` | `3600000` | 1h |
-| `HL_MASTER_KEY` | — | Set for secret encryption (v2.0) |
+| `HL_MASTER_KEY` | — | Reserved for future hardening path (non-GA) |
 
 ### Full Reference
 
@@ -46,7 +46,7 @@ HL_MAX_INFLIGHT_GLOBAL=500
 HL_RETENTION_SECS=604800
 HL_COMPACT_INTERVAL_MS=3600000
 
-# Encryption (v2.0)
+# Encryption (future hardening / non-GA)
 HL_MASTER_KEY=<32-byte-hex>
 ```
 
@@ -57,13 +57,13 @@ HL_MASTER_KEY=<32-byte-hex>
 - [ ] Container restart policy is `unless-stopped` or `always`
 - [ ] `/healthz` and `/readyz` are wired to load balancer health checks
 - [ ] Prometheus scrape configured for port `8080/metrics`
-- [ ] Grafana dashboard imported (`grafana/dashboards/hookline.json`)
+- [ ] Grafana dashboard imported (`grafana/dashboards/gatepulse.json`)
 - [ ] Alert rules loaded (`prometheus/alerts.yml`)
 - [ ] Firewall: port `8080` accessible only from trusted networks
 
 ## Backup
 
-- [ ] Hourly backup cron configured (`gp store snapshot create`)
+- [ ] Hourly backup cron configured (`./bin/hl store snapshot create`)
 - [ ] Daily full backup to object storage (S3/GCS)
 - [ ] Restore procedure tested at least once
 - [ ] See [`backup.md`](backup.md) for full instructions
@@ -73,7 +73,7 @@ HL_MASTER_KEY=<32-byte-hex>
 - [ ] `HL_API_KEY` is not the default (`change-me` / `dev-secret`)
 - [ ] `HL_API_KEY` is injected via secrets manager (not hardcoded in yaml)
 - [ ] Endpoint `secret` fields set for HMAC verification on consumer side
-- [ ] `HL_MASTER_KEY` set and endpoint secrets encrypted (v2.0)
+- [ ] Endpoint secrets rotated regularly and consumer verification secrets kept in sync
 - [ ] TLS terminated at ingress/load balancer
 - [ ] `/v1/admin/*` endpoints not exposed publicly (restrict at network level)
 
@@ -122,4 +122,4 @@ For full release decision criteria (including rollback/restore + DR drills), use
 | Storage | ~1 KB/event → 50 GB ≈ 50M events |
 | Memory | ~256 MB Erlang + ~128 MB C store |
 
-For higher throughput: increase `HL_DELIVERY_WORKERS`, run multiple API nodes (v1.3 HA), or use Postgres backend (v2.0).
+For higher throughput: increase `HL_DELIVERY_WORKERS` and/or run multiple API nodes (v1.3 HA).

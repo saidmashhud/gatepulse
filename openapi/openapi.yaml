@@ -316,32 +316,76 @@ paths:
   /v1/replay:
     post:
       tags: [Replay]
-      summary: Replay an event
+      summary: Replay events
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [event_id]
+              description: |
+                Targeted replay supports `event_id` (optionally with `endpoint_id`).
+                Batch replay supports filters: `from_ms`, `to_ms`, `topic`, `endpoint_id`, `mode`, `limit`.
               properties:
                 event_id:
                   type: string
                 endpoint_id:
                   type: string
                   description: Optional endpoint filter for targeted replay
+                from_ms:
+                  type: integer
+                to_ms:
+                  type: integer
+                topic:
+                  type: string
+                mode:
+                  type: string
+                  enum: [all, failed_only]
+                limit:
+                  type: integer
       responses:
         "200":
-          description: Replay jobs created
+          description: Replay scheduled
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  job_ids:
+                  replay_id:
+                    type: string
+                  replayed:
+                    type: integer
+                  scheduled:
+                    type: integer
+                  results:
                     type: array
                     items:
-                      type: string
+                      type: object
+                      properties:
+                        event_id:
+                          type: string
+                        job_ids:
+                          type: array
+                          items:
+                            type: string
+                        error:
+                          type: string
+
+  /v1/replay/{id}:
+    get:
+      tags: [Replay]
+      summary: Get replay status by ID
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Replay status
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /v1/stream:
     get:
@@ -482,13 +526,20 @@ components:
     EventInput:
       type: object
       required: [topic]
+      description: |
+        Canonical payload field is `payload`.
+        `data` is kept as a legacy alias for compatibility.
       properties:
         topic:
           type: string
           example: orders.created
+        payload:
+          type: object
+          additionalProperties: true
         data:
           type: object
           additionalProperties: true
+          deprecated: true
 
     Event:
       allOf:

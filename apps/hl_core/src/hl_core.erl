@@ -120,6 +120,13 @@ do_publish(TenantId, Event, IdempotencyKey) ->
     EventId = maps:get(<<"id">>, Event),
     Topic   = maps:get(<<"topic">>, Event),
 
+    case hl_billing:check_quota(TenantId) of
+        {error, quota_exceeded} ->
+            {error, {429, <<"monthly event limit reached">>}};
+        {error, subscription_inactive} ->
+            {error, {402, <<"subscription payment required">>}};
+        ok ->
+
     case hl_store_client:append_event(EventId, TenantId, Payload) of
         {ok, _} ->
             case IdempotencyKey of
@@ -131,16 +138,29 @@ do_publish(TenantId, Event, IdempotencyKey) ->
                           event_id => EventId, tenant_id => TenantId,
                           topic => Topic}),
             hl_delivery_metrics:inc_published(TenantId, Topic),
+            hl_billing_counters:track_event(TenantId, published),
 
             case route_event(TenantId, Event) of
                 {ok, Subs} ->
                     {ok, JobIds} = create_delivery_jobs(Event, Subs, TenantId),
                     hl_stream_pubsub:publish(TenantId, Event),
+                    %% Direct-message offline queue: if event targets a specific
+                    %% user who is currently offline, enqueue to their DLQ so
+                    %% it is flushed on their next WS connection.
+                    case maps:get(<<"target_user_id">>, Event, undefined) of
+                        undefined -> ok;
+                        Uid ->
+                            case hl_presence:is_online(TenantId, Uid) of
+                                false -> hl_store_client:put_user_dlq(TenantId, Uid, Event);
+                                true  -> ok
+                            end
+                    end,
                     {ok, Event#{<<"job_ids">> => JobIds}};
                 {error, _} = E -> E
             end;
 
         {error, _} = E -> E
+    end
     end.
 
 check_idempotency(_TenantId, undefined) ->

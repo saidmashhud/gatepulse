@@ -57,13 +57,13 @@ HL_CONTAINER=hookline \
 1. Создать snapshot:
 
 ```bash
-gp store snapshot create --dest /path/to/backups
+./bin/hl store snapshot create --dest /path/to/backups
 ```
 
 2. Проверить snapshot без восстановления:
 
 ```bash
-gp store snapshot restore --from /path/to/backups/<snapshot-id> --validate-only
+./bin/hl store snapshot restore --from /path/to/backups/<snapshot-id> --validate-only
 ```
 
 3. Восстановить в отдельный canary-инстанс и выполнить smoke:
@@ -120,4 +120,3 @@ Pass criteria:
 - rollback/restore drill завершен успешно,
 - DR drill завершен успешно,
 - риски и лимиты (RTO/RPO/SLO) зафиксированы в release note.
-

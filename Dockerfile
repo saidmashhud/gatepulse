@@ -12,7 +12,7 @@ WORKDIR /build
 COPY rebar.config .
 COPY apps/ apps/
 COPY config/ config/
-COPY openapi/ openapi/
+COPY contracts/ contracts/
 
 # Install rebar3
 RUN curl -fsSL https://s3.amazonaws.com/rebar3/rebar3 -o /usr/local/bin/rebar3 \

@@ -1,3 +1,9 @@
+> **Internal planning document.** This file is the original technical specification
+> used to plan the post-v1 evolution of HookLine. It is kept here for historical
+> reference. For the current public roadmap see the release notes in `docs/releases/`.
+> Features described here reflect design intent, not necessarily the current
+> implementation state.
+
 # ТЗ: Эволюция HookLine (post-v1 roadmap)
 
 ## 1) Цели эволюции

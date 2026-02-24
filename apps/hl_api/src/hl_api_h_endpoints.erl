@@ -9,6 +9,12 @@ init(Req0, Opts) ->
 handle(<<"POST">>, Req0, Opts) ->
     {ok, Body, Req1} = cowboy_req:read_body(Req0),
     TId = get_tenant(Req1),
+    case hl_billing:check_endpoint_quota(TId) of
+        {error, endpoint_limit_reached} ->
+            hl_api_error:reply(Req1, 403, endpoint_limit_reached,
+                               <<"endpoint limit for current plan reached">>),
+            {ok, Req1, Opts};
+        ok ->
     case jsx:decode(Body, [return_maps]) of
         Map when is_map(Map) ->
             case hl_core_schema:validate_endpoint(Map#{<<"tenant_id">> => TId}) of
@@ -49,6 +55,7 @@ handle(<<"POST">>, Req0, Opts) ->
         _ ->
             hl_api_error:reply(Req1, 400, invalid_json, <<>>),
             {ok, Req1, Opts}
+    end
     end;
 
 %% GET /v1/endpoints  or  GET /v1/endpoints/:id

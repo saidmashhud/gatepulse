@@ -10,6 +10,8 @@
 - **Dead Letter Queue** — failed events stored, inspectable, and requeueable
 - **Replay** — re-deliver events by `event_id`, time range, topic, or endpoint
 - **Real-time SSE stream** — subscribe to events with topic filtering and `Last-Event-ID` resume
+- **WebSocket transport** — bidirectional, browser-native; publish + subscribe + presence + offline queue
+- **Presence system** — track online users per topic, `GET /v1/presence/{topic}`
 - **Dev Inbox** — built-in test endpoint for local development
 - **Prometheus metrics** at `/metrics`
 - **Single Docker container** — no external dependencies
@@ -29,24 +31,24 @@ docker-compose up -d
 
 In embedded mode, HookLine handles **delivery** only. A control-plane service
 (such as [Mashgate `mg-events`](https://github.com/saidmashhud/mashgate)) owns
-endpoint registration and subscription management, and calls HookLine with a
-`X-Tenant-Id` header to scope all operations.
+endpoint registration and subscription management, and calls HookLine using a
+tenant-scoped API key.
 
 ```bash
-HL_AUTH_MODE=service_token \
-HL_SERVICE_TOKEN=<shared-secret> \
+HL_ADMIN_KEY=<admin-secret> \
 HL_SINGLE_TENANT=false \
-HL_EMBEDDED_MODE=true \
 docker compose up -d
+
+# Create a tenant for the control-plane (e.g. Mashgate)
+curl -H "Authorization: Bearer <admin-secret>" \
+  -X POST http://localhost:8080/v1/tenants \
+  -d '{"id":"mashgate","name":"Mashgate Platform"}'
+# → { "api_key": "hl_live_..." }
 ```
 
-When `HL_EMBEDDED_MODE=true`, the service token is restricted to data-plane
-scopes only — admin operations (`/v1/tenants`, `/v1/admin`, `/v1/apikeys`)
-return 403, and the `/console` UI is blocked.
-
-Mashgate's `mg-events` service uses this mode — it stores endpoint/subscription
-metadata in its own PostgreSQL database and uses HookLine purely as the delivery
-engine. See [docs/embedded-mode.md](docs/embedded-mode.md) for full details.
+Admin API isolation is handled at the network layer (docker network policy,
+Kubernetes NetworkPolicy) — not via a special auth mode. See
+[docs/multi-tenancy.md](docs/multi-tenancy.md) for the full setup guide.
 
 ---
 
@@ -100,22 +102,101 @@ curl "http://localhost:8080/v1/dev/inbox/messages?token=$TOKEN" \
 
 ---
 
+## WebSocket
+
+HookLine provides a bidirectional WebSocket endpoint at `/v1/ws` that shares the same pubsub bus as SSE. Every `publish_event` call delivers to SSE and WS subscribers simultaneously.
+
+```bash
+# Connect (requires websocat)
+websocat "ws://localhost:8080/v1/ws?token=$HL_API_KEY&topics=orders.#"
+
+# Publish a message over WebSocket
+{"type":"publish","topic":"orders.created","payload":{"id":"123"},"client_id":"1"}
+
+# Expected ack:   {"type":"ack","client_id":"1","event_id":"evt_..."}
+# Expected event: {"type":"event","id":"evt_...","topic":"orders.created",...}
+```
+
+**Supported client message types:** `publish`, `subscribe`, `unsubscribe`, `read`
+
+**Supported server message types:** `event`, `ack`, `presence`
+
+### Presence
+
+```bash
+curl http://localhost:8080/v1/presence/orders.# \
+  -H "Authorization: Bearer $HL_API_KEY"
+# {"online":[{"user_id":"alice","joined_at":...}],"count":1}
+```
+
+### JavaScript SDK
+
+```ts
+const ws = client.connect({
+  topics: ["orders.#"],
+  onEvent:    (e) => console.log(e),
+  onPresence: (p) => console.log(p),
+});
+ws.publish("orders.created", { id: "123" });
+```
+
+### Go SDK
+
+```go
+wsc, _ := client.ConnectWS(hookline.WSOptions{
+    Topics:  []string{"orders.#"},
+    OnEvent: func(e hookline.WSEvent) { fmt.Println(e) },
+})
+_ = wsc.Publish("orders.created", map[string]any{"id": "123"}, "")
+```
+
+See [docs/websocket.md](docs/websocket.md) for the full protocol reference.
+
+---
+
+## Billing
+
+HookLine includes a built-in SaaS billing system with per-plan quotas, usage tracking, and [mgPay](https://mashgate.io) payment integration.
+
+| Plan | Events/mo | Endpoints | WebSocket | Price |
+|------|-----------|-----------|-----------|-------|
+| free | 10K | 3 | No | $0 |
+| starter | 100K | 10 | No | $29 |
+| growth | 1M | unlimited | **Yes** | $99 |
+| business | 10M | unlimited | **Yes** | $399 |
+| enterprise | unlimited | unlimited | **Yes** | custom |
+
+Overage: $1 per 10,000 events above the monthly limit (paid plans only).
+
+Billing is **disabled by default** (`HL_BILLING_ENABLED=false`). To enable:
+
+```bash
+export HL_BILLING_ENABLED=true
+export HL_MASHGATE_URL=https://pay.mashgate.io
+export HL_MASHGATE_API_KEY=your_key
+export HL_MASHGATE_WEBHOOK_SECRET=your_secret
+```
+
+See [`docs/billing.md`](docs/billing.md) for the full API reference, webhook setup, and admin endpoints.
+
+---
+
 ## CLI
 
-The `bin/gp` shell script wraps the API:
+The CLI script is `bin/hl`:
 
 ```bash
 export HL_URL=http://localhost:8080
 export HL_API_KEY=dev-secret
 
-gp endpoints add --url https://my.app/hooks --secret s3cr3t
-gp subs add --endpoint <id> --topic "orders.#"
-gp events publish --topic orders.created --payload '{"id":1}'
-gp deliveries ls --event <event_id>
-gp dlq ls
-gp replay --event <event_id>
-gp stream --topic "orders.#"
-gp inbox create
+./bin/hl endpoints add --url https://my.app/hooks --secret s3cr3t
+./bin/hl subs add --endpoint <id> --topic "orders.#"
+./bin/hl events publish --topic orders.created --payload '{"id":1}'
+./bin/hl deliveries ls --event <event_id>
+./bin/hl dlq ls
+./bin/hl replay --event <event_id>
+./bin/hl stream --topic "orders.#"
+./bin/hl inbox create
 ```
 
 ---
@@ -198,24 +279,24 @@ def webhook():
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `HL_LISTEN_ADDR` | `:8080` | HTTP listen address |
+| `HL_PORT` | `8080` | HTTP listen port |
+| `HL_LISTEN_ADDR` | `0.0.0.0` | HTTP bind address |
 | `HL_API_KEY` | — | API key (required in `api_key` mode unless `HL_ADMIN_KEY` is set) |
+| `HL_ADMIN_KEY` | — | Optional admin override key |
 | `HL_TENANT_ID` | `default` | Tenant ID (single-tenant mode) |
 | `HL_SINGLE_TENANT` | `true` | Single vs multi-tenant mode |
-| `HL_STORE_SOCKET` | `/tmp/gp_store.sock` | Path to C store daemon socket |
-| `HL_STORE_DATA_DIR` | `/var/lib/hookline` | Storage directory |
+| `HL_STORE_SOCKET` | `/tmp/hl_store.sock` | Path to C store daemon socket |
+| `HL_DATA_DIR` | `/var/lib/hookline` | Storage directory |
 | `HL_RETRY_MAX_ATTEMPTS` | `10` | Max delivery attempts |
 | `HL_RETENTION_SECS` | `604800` | Event retention (7 days) |
-| `HL_DELIVERY_WORKERS` | `20` | Concurrent delivery workers |
-| `HL_AUTH_MODE` | `api_key` | Auth mode: `api_key` or `service_token` |
-| `HL_SERVICE_TOKEN` | — | Shared secret for `service_token` auth mode |
-| `HL_EMBEDDED_MODE` | `false` | Restrict to data-plane scopes (blocks admin + console) |
+| `HL_DELIVERY_WORKERS` | `16` | Concurrent delivery workers |
 
 ---
 
 ## API Reference
 
-Full OpenAPI spec available at **`/openapi.yaml`** when the server is running, or in [`openapi/openapi.yaml`](openapi/openapi.yaml) / [`docs/openapi/hookline.yaml`](docs/openapi/hookline.yaml).
+Canonical OpenAPI source is [`openapi/openapi.yaml`](openapi/openapi.yaml).
+Runtime endpoint **`/openapi.yaml`** serves the same contract.
 
 Key endpoints:
 
@@ -239,7 +320,6 @@ Key endpoints:
 | `POST` | `/v1/replay` | Replay events |
 | `GET`  | `/v1/replay/:id` | Replay status |
 | `GET`  | `/v1/stream` | SSE event stream |
-| `GET`  | `/v1/health/embedded` | Embedded mode status |
 | `GET`  | `/healthz` | Liveness probe |
 | `GET`  | `/readyz` | Readiness probe |
 | `GET`  | `/metrics` | Prometheus metrics |
@@ -252,16 +332,16 @@ Key endpoints:
 ┌─────────────────────────────────────────────────────┐
 │                   HookLine (Erlang/OTP)            │
 │                                                     │
-│  gp_api ──► gp_core ──► gp_store_client ──┐        │
+│  hl_api ──► hl_core ──► hl_store_client ──┐        │
 │     │                                      │        │
-│     └──► gp_stream (SSE)      gp_delivery ─┤        │
+│     └──► hl_stream (SSE)      hl_delivery ─┤        │
 │                                            │        │
-│  gp_dev_inbox (ETS)                        │        │
+│  hl_dev_inbox (ETS)                        │        │
 └────────────────────────────────────────────┼────────┘
                                              │ UNIX socket
                                              ▼
                               ┌─────────────────────────┐
-                              │   gp_store (C daemon)   │
+                              │  hl_store (C daemon)    │
                               │                         │
                               │  append-only log        │
                               │  hash index             │
@@ -270,11 +350,11 @@ Key endpoints:
                               └─────────────────────────┘
 ```
 
-**gp_api** — Cowboy HTTP server, auth middleware, all REST handlers
-**gp_core** — validation, topic matching, delivery job creation
-**gp_delivery** — poller + workers: claim → HTTP POST → ack/nack/DLQ
-**gp_stream** — SSE loop handler with pubsub and replay
-**gp_store** — C11 daemon: segmented append-only log with CRC32 integrity
+**hl_api** — Cowboy HTTP server, auth middleware, all REST handlers
+**hl_core** — validation, topic matching, delivery job creation
+**hl_delivery** — poller + workers: claim → HTTP POST → ack/nack/DLQ
+**hl_stream** — SSE loop handler with pubsub and replay
+**hl_store** — C11 daemon: segmented append-only log with CRC32 integrity
 
 ---
 
@@ -315,7 +395,7 @@ docker-compose up
 
 ## Used by
 
-**[Mashgate](https://github.com/saidmashhud/mashgate)** — open-source payment infrastructure for Central Asia — uses HookLine as its webhook delivery engine via embedded mode. The `mg-events` gRPC service acts as the control plane; HookLine handles delivery, retry, DLQ, and SSE streaming.
+**[Mashgate](https://github.com/saidmashhud/mashgate)** — open-source payments, identity, and webhook platform for Central Asia — uses HookLine as its webhook delivery engine via embedded mode. The `mg-events` gRPC service acts as the control plane; HookLine handles delivery, retry, DLQ, and SSE streaming.
 
 ## Contributing
 

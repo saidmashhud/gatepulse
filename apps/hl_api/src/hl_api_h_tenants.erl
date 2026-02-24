@@ -32,15 +32,9 @@ handle(<<"POST">>, undefined, undefined, Req0, Opts) ->
     end,
     case hl_tenant_store:create(TenantId, Name) of
         {ok, TId} ->
-            %% In service_token embedded mode, warm caches for the new tenant
-            %% so it can receive events immediately without a restart.
-            case hl_config:get_str("HL_AUTH_MODE", "api_key") of
-                "service_token" ->
-                    hl_subscription_cache:load_tenant(TId),
-                    hl_tenant_manager:load_tenant(TId);
-                _ ->
-                    ok
-            end,
+            %% Warm caches for the new tenant so it can receive events immediately.
+            hl_subscription_cache:load_tenant(TId),
+            hl_tenant_manager:load_tenant(TId),
             {ok, Tenant} = hl_tenant_store:get(TId),
             reply_json(201, Tenant, Req1, Opts);
         {error, already_exists} ->

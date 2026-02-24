@@ -1,0 +1,8 @@
+{application, hl_ws, [
+    {description, "HookLine WebSocket transport"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {hl_ws_app, []}},
+    {applications, [kernel, stdlib, cowboy, jsx, hl_core, hl_stream, hl_presence]},
+    {env, []}
+]}.

@@ -3,42 +3,27 @@
 
 -export([execute/2, require_scope/2]).
 
-%% Scopes granted in embedded mode (HL_EMBEDDED_MODE=true).
-%% Restricts service_token callers to data-plane operations only;
-%% admin/tenant management endpoints remain blocked.
--define(EMBEDDED_SCOPES, [
-    <<"events.publish">>, <<"events.read">>,
-    <<"endpoints.read">>, <<"endpoints.write">>,
-    <<"subscriptions.read">>, <<"subscriptions.write">>,
-    <<"deliveries.read">>, <<"deliveries.retry">>,
-    <<"dlq.read">>, <<"dlq.replay">>, <<"stream.subscribe">>
-]).
-
 %% Public paths that skip auth
 -define(PUBLIC_PATHS, [
     <<"/healthz">>,
     <<"/readyz">>,
-    <<"/v1/health/embedded">>,
     <<"/metrics">>,
     <<"/openapi.yaml">>
 ]).
 
 execute(Req, Env) ->
     Path = cowboy_req:path(Req),
-    IsEmbedded = hl_config:get_str("HL_EMBEDDED_MODE", "false") =:= "true",
     IsPublic = lists:member(Path, ?PUBLIC_PATHS) orelse
                binary:match(Path, <<"/v1/dev/inbox/receive/">>) =/= nomatch orelse
-               %% /console is public only in standalone mode;
-               %% embedded mode blocks it so Mashgate callers cannot access the admin UI
-               (not IsEmbedded andalso binary:match(Path, <<"/console">>) =/= nomatch),
+               binary:match(Path, <<"/v1/billing/webhooks/">>) =/= nomatch orelse
+               binary:match(Path, <<"/console">>) =/= nomatch,
     case IsPublic of
         true ->
             {ok, Req, Env};
         false ->
-            AuthMode = hl_config:get_str("HL_AUTH_MODE", "api_key"),
             case extract_token(Req) of
                 {ok, Token} ->
-                    case authenticate(AuthMode, Token, Req, Env) of
+                    case authenticate(Token, Req, Env) of
                         {ok, Req1, Env1} ->
                             enforce_scope(Req1, Env1);
                         Other ->
@@ -49,37 +34,7 @@ execute(Req, Env) ->
             end
     end.
 
-%% service_token mode: shared secret proves caller identity;
-%% tenant is resolved from the mandatory X-Tenant-Id request header.
-%% Missing header → 400 (not 401) so callers get a clear error.
-authenticate("service_token", Token, Req, Env) ->
-    ServiceToken = list_to_binary(hl_config:get_str("HL_SERVICE_TOKEN", "")),
-    if
-        ServiceToken =:= <<>> orelse Token =/= ServiceToken ->
-            reply_unauthorized(Req, Env);
-        true ->
-            case cowboy_req:header(<<"x-tenant-id">>, Req, undefined) of
-                undefined ->
-                    reply_missing_tenant(Req, Env);
-                TenantId ->
-                    case ensure_service_tenant(TenantId) of
-                        ok ->
-                            Scopes = case hl_config:get_str("HL_EMBEDDED_MODE", "false") of
-                                "true" -> ?EMBEDDED_SCOPES;
-                                _      -> [<<"*">>]
-                            end,
-                            Req2 = cowboy_req:set_resp_header(<<"x-tenant-id">>, TenantId, Req),
-                            Req3 = Req2#{tenant_id => TenantId, scopes => Scopes},
-                            Env2 = Env#{tenant_id => TenantId},
-                            {ok, Req3, Env2};
-                        {error, Reason} ->
-                            reply_tenant_bootstrap_failed(Req, Env, TenantId, Reason)
-                    end
-            end
-    end;
-
-%% api_key mode (default): tenant is embedded in the token.
-authenticate(_Mode, Token, Req, Env) ->
+authenticate(Token, Req, Env) ->
     case verify_token(Token) of
         {ok, TenantId} ->
             Scopes = get_scopes(Token),
@@ -94,11 +49,17 @@ authenticate(_Mode, Token, Req, Env) ->
 extract_token(Req) ->
     case cowboy_req:header(<<"authorization">>, Req) of
         <<"Bearer ", Token/binary>> -> {ok, Token};
-        undefined -> {error, missing};
-        _         -> {error, invalid_format}
+        _ ->
+            %% Browsers cannot set Authorization headers on WebSocket upgrades;
+            %% fall back to ?token= query param.
+            QS = cowboy_req:parse_qs(Req),
+            case proplists:get_value(<<"token">>, QS) of
+                undefined -> {error, missing};
+                Token     -> {ok, Token}
+            end
     end.
 
-%% Used by api_key mode only. HL_ADMIN_KEY > HL_API_KEY > dynamic key store.
+%% HL_ADMIN_KEY > HL_API_KEY > dynamic key store.
 verify_token(Token) ->
     AdminKey      = list_to_binary(hl_config:get_str("HL_ADMIN_KEY", "")),
     EnvKey        = list_to_binary(hl_config:get_str("HL_API_KEY", "")),
@@ -233,9 +194,31 @@ required_scope_non_replay(Method, Path) ->
                 _            -> undefined
             end;
         false ->
-            case has_prefix(Path, <<"/v1/stream">>) of
-                true  -> <<"stream.subscribe">>;
-                false -> undefined
+            case has_prefix(Path, <<"/v1/billing">>) of
+                true ->
+                    case Method of
+                        <<"GET">>    -> <<"billing.read">>;
+                        <<"POST">>   -> <<"billing.write">>;
+                        <<"DELETE">> -> <<"billing.write">>;
+                        _            -> undefined
+                    end;
+                false ->
+                    case has_prefix(Path, <<"/v1/stream">>) of
+                        true  -> <<"stream.subscribe">>;
+                        false ->
+                            case has_prefix(Path, <<"/v1/ws">>) of
+                                true  -> <<"stream.subscribe">>;
+                                false ->
+                                    case has_prefix(Path, <<"/v1/presence">>) of
+                                        true  -> <<"presence.read">>;
+                                        false ->
+                                            case has_prefix(Path, <<"/v1/uploads">>) of
+                                                true  -> <<"uploads.write">>;
+                                                false -> undefined
+                                            end
+                                    end
+                            end
+                    end
             end
     end.
 
@@ -272,13 +255,9 @@ has_prefix(Path, Prefix) when is_binary(Path), is_binary(Prefix) ->
         false -> false
     end.
 
-%% Get scopes for a token (api_key mode only).
-%% service_token callers receive scopes directly in authenticate/4:
-%%   HL_EMBEDDED_MODE=true  -> data-plane scope allowlist
-%%   otherwise              -> [<<"*">>]
-%%   HL_ADMIN_KEY  → [<<"admin">>, <<"*">>]  (all scopes + admin-only ops)
-%%   HL_API_KEY    → [<<"*">>]               (all scopes, backward compat)
-%%   dynamic key   → whatever was set at creation
+%% HL_ADMIN_KEY  → [<<"admin">>, <<"*">>]  (all scopes + admin-only ops)
+%% HL_API_KEY    → [<<"*">>]               (all scopes, backward compat)
+%% dynamic key   → whatever was set at creation
 get_scopes(Token) ->
     AdminKey = list_to_binary(hl_config:get_str("HL_ADMIN_KEY", "")),
     EnvKey   = list_to_binary(hl_config:get_str("HL_API_KEY", "")),
@@ -301,50 +280,6 @@ reply_unauthorized(Req, Env) ->
     Body = jsx:encode(#{<<"error">> => <<"unauthorized">>,
                         <<"code">>  => <<"AUTH_REQUIRED">>}),
     Req2 = cowboy_req:reply(401,
-        #{<<"content-type">> => <<"application/json">>},
-        Body, Req),
-    {stop, Req2, Env}.
-
-reply_missing_tenant(Req, Env) ->
-    logger:warning(#{event => missing_tenant_header,
-                     path  => cowboy_req:path(Req)}),
-    Body = jsx:encode(#{<<"error">> => <<"missing_tenant">>,
-                        <<"code">>  => <<"X_TENANT_ID_REQUIRED">>,
-                        <<"message">> =>
-                            <<"X-Tenant-Id header is required in service_token auth mode">>}),
-    Req2 = cowboy_req:reply(400,
-        #{<<"content-type">> => <<"application/json">>},
-        Body, Req),
-    {stop, Req2, Env}.
-
-ensure_service_tenant(TenantId) ->
-    case catch hl_tenant_store:create(TenantId, TenantId) of
-        {ok, _} ->
-            %% New tenant appeared via service_token + X-Tenant-Id.
-            %% Warm runtime state immediately so first post-restart publish routes.
-            _ = catch hl_subscription_cache:load_tenant_sync(TenantId),
-            _ = catch hl_tenant_manager:load_tenant_sync(TenantId),
-            ok;
-        {error, already_exists} ->
-            ok;
-        {error, Reason} ->
-            {error, Reason};
-        {'EXIT', _} ->
-            %% During startup races (store not fully up), avoid hard auth failures.
-            ok;
-        _ ->
-            ok
-    end.
-
-reply_tenant_bootstrap_failed(Req, Env, TenantId, Reason) ->
-    logger:error(#{event => tenant_bootstrap_failed,
-                   path => cowboy_req:path(Req),
-                   tenant_id => TenantId,
-                   reason => Reason}),
-    Body = jsx:encode(#{<<"error">> => <<"tenant_unavailable">>,
-                        <<"code">>  => <<"TENANT_BOOTSTRAP_FAILED">>,
-                        <<"tenant_id">> => TenantId}),
-    Req2 = cowboy_req:reply(503,
         #{<<"content-type">> => <<"application/json">>},
         Body, Req),
     {stop, Req2, Env}.

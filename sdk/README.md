@@ -14,7 +14,7 @@ Client libraries for the [HookLine](https://github.com/saidmashhud/hookline) web
 Every SDK provides:
 
 - **Client** -- create endpoints, publish events, manage subscriptions and deliveries.
-- **Webhook verification** -- validate `HookLine-Signature` headers with HMAC-SHA256.
+- **Webhook verification** -- validate `x-gp-signature` / `x-gp-timestamp` headers with HMAC-SHA256 (`v1=<hex(hmac(secret, "{timestamp}.{body}"))>`).
 
 ## Getting Started
 

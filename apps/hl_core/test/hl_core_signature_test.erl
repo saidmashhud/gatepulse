@@ -32,3 +32,35 @@ header_value_format_test() ->
 header_not_sha256_prefix_test() ->
     H = hl_core_signature:header_value(<<"k">>, 0, <<"b">>),
     ?assertEqual(nomatch, binary:match(H, <<"sha256=">>)).
+
+%% ─── Replay attack: timestamp older than 5 minutes must be rejected ──────────
+
+signature_replay_attack_test() ->
+    Secret = <<"replay-secret">>,
+    Body   = <<"payload">>,
+    %% Timestamp 6 minutes in the past (> 5 min tolerance)
+    OldTs  = erlang:system_time(millisecond) - 360_000,
+    Input  = hl_core_signature:signing_input(OldTs, Body),
+    Sig    = hl_core_signature:sign(Secret, Input),
+    %% Signature itself is valid — but the timestamp is too old
+    ?assertNot(hl_core_signature:verify_with_timestamp(Secret, OldTs, Body, Sig)).
+
+%% ─── Fresh timestamp within tolerance is accepted ────────────────────────────
+
+signature_fresh_timestamp_accepted_test() ->
+    Secret  = <<"fresh-secret">>,
+    Body    = <<"payload">>,
+    NowTs   = erlang:system_time(millisecond),
+    Input   = hl_core_signature:signing_input(NowTs, Body),
+    Sig     = hl_core_signature:sign(Secret, Input),
+    ?assert(hl_core_signature:verify_with_timestamp(Secret, NowTs, Body, Sig)).
+
+%% ─── Timestamp at exactly 5 minutes boundary is accepted ─────────────────────
+
+signature_boundary_timestamp_test() ->
+    Secret   = <<"boundary-secret">>,
+    Body     = <<"boundary-payload">>,
+    BoundTs  = erlang:system_time(millisecond) - 299_000, %% just under 5 min
+    Input    = hl_core_signature:signing_input(BoundTs, Body),
+    Sig      = hl_core_signature:sign(Secret, Input),
+    ?assert(hl_core_signature:verify_with_timestamp(Secret, BoundTs, Body, Sig)).

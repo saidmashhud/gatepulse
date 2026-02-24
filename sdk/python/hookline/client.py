@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from .admin import AdminClient
 import hmac
 import json
 from typing import Any
@@ -25,6 +26,7 @@ class HookLineClient:
     def __init__(self, base_url: str, api_key: str) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
+        self.admin = AdminClient(self)
 
     def _request(
         self, method: str, path: str, body: Any = None
@@ -49,11 +51,13 @@ class HookLineClient:
     def publish_event(
         self,
         topic: str,
-        data: dict,
+        payload: dict | None = None,
+        data: dict | None = None,
         idempotency_key: str | None = None,
         occurred_at: int | None = None,
     ) -> dict:
-        payload: dict = {"topic": topic, "data": data}
+        event_payload = payload if payload is not None else (data or {})
+        payload: dict = {"topic": topic, "payload": event_payload}
         if idempotency_key:
             payload["idempotency_key"] = idempotency_key
         if occurred_at:

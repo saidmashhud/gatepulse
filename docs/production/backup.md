@@ -19,10 +19,10 @@ curl -X POST http://localhost:8080/v1/admin/store/resume-claims \
   -H "Authorization: Bearer $HL_API_KEY"
 ```
 
-Or use the `gp` CLI:
+Or use the HookLine CLI script:
 
 ```bash
-gp store snapshot create --dest /path/to/backups
+./bin/hl store snapshot create --dest /path/to/backups
 ```
 
 ## Restoring from a snapshot
@@ -34,10 +34,10 @@ gp store snapshot create --dest /path/to/backups
 docker-compose down   # or: kill $(cat /var/run/hookline.pid)
 
 # 2. Validate backup (check segment magic bytes)
-gp store snapshot restore --from /path/to/backup/20260101-120000 --validate-only
+./bin/hl store snapshot restore --from /path/to/backup/20260101-120000 --validate-only
 
 # 3. Restore
-gp store snapshot restore --from /path/to/backup/20260101-120000
+./bin/hl store snapshot restore --from /path/to/backup/20260101-120000
 
 # 4. Start HookLine
 docker-compose up -d

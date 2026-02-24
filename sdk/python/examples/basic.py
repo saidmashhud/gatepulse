@@ -39,7 +39,7 @@ print(f"Created subscription: {sub['subscription_id']}")
 # 4. Publish an event
 event = client.publish_event(
     topic="orders.created",
-    data={"order_id": "ord_123", "amount": 99.99, "currency": "USD"},
+    payload={"order_id": "ord_123", "amount": 99.99, "currency": "USD"},
 )
 print(f"Published event: {event['id']}")
 

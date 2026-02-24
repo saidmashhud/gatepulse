@@ -30,11 +30,11 @@ update_actor(Ep) ->
         not_found -> start_actor(Ep)
     end.
 
-%% Boot delivery actors for a single tenant (called after dynamic tenant creation).
+%% Boot delivery actors for a single tenant (called after tenant creation).
 load_tenant(TenantId) ->
     gen_server:cast(?MODULE, {load_tenant, TenantId}).
 
-%% Synchronous tenant boot used when tenant is auto-materialized at request time.
+%% Synchronous tenant boot — ensures actors are ready before continuing.
 load_tenant_sync(TenantId) ->
     gen_server:call(?MODULE, {load_tenant_sync, TenantId}).
 
@@ -74,9 +74,9 @@ maybe_boot_actors() ->
     end.
 
 boot_actors() ->
-    case hl_config:get_str("HL_AUTH_MODE", "api_key") of
-        "service_token" ->
-            %% Multi-tenant embedded mode: boot actors for ALL active tenants.
+    case hl_config:get_str("HL_SINGLE_TENANT", "true") of
+        "false" ->
+            %% Multi-tenant mode: boot actors for ALL active tenants.
             case tenant_list() of
                 {ok, Tenants} ->
                     lists:foreach(fun(#{<<"tenant_id">> := TId}) ->

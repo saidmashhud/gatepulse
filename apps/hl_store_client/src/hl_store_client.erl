@@ -11,10 +11,13 @@
     nack_job/2,
     put_dlq/1,
     list_dlq/1,
+    list_user_dlq/2,
+    put_user_dlq/3,
     requeue_dlq/2,
     delete_dlq/2,
     append_attempt/1,
     list_attempts/1,
+    mark_read/2,
     put_endpoint/1,
     get_endpoint/2,
     list_endpoints/1,
@@ -91,6 +94,25 @@ put_dlq(Entry) when is_map(Entry) ->
 list_dlq(TenantId) ->
     call(<<"store.list_dlq">>, #{<<"tenant_id">> => TenantId}).
 
+%% List DLQ entries targeted at a specific user.
+list_user_dlq(TenantId, UserId) ->
+    case list_dlq(TenantId) of
+        {ok, #{<<"entries">> := Entries}} ->
+            Filtered = [E || E <- Entries,
+                             maps:get(<<"target_user_id">>, E, undefined) =:= UserId],
+            {ok, Filtered};
+        Err -> Err
+    end.
+
+%% Store an event in the user DLQ (offline direct-message queue).
+put_user_dlq(TenantId, UserId, Event) ->
+    JobId = hl_core_uuid:generate_str(),
+    Entry = #{<<"tenant_id">>      => TenantId,
+              <<"target_user_id">> => UserId,
+              <<"event">>          => Event,
+              <<"job_id">>         => JobId},
+    put_dlq(Entry).
+
 requeue_dlq(TenantId, JobId) ->
     call(<<"store.requeue_dlq">>, #{
         <<"tenant_id">> => TenantId,
@@ -109,6 +131,14 @@ append_attempt(Attempt) when is_map(Attempt) ->
 %% Opts: #{tenant_id, job_id, event_id, endpoint_id, attempt_id, limit}
 list_attempts(Opts) when is_map(Opts) ->
     call(<<"store.list_attempts">>, Opts).
+
+%% Record a read receipt for an event (status=read delivery attempt).
+mark_read(TenantId, EventId) ->
+    AttemptId = hl_core_uuid:generate_str(),
+    append_attempt(#{<<"tenant_id">>  => TenantId,
+                     <<"event_id">>   => EventId,
+                     <<"status">>     => <<"read">>,
+                     <<"attempt_id">> => AttemptId}).
 
 put_endpoint(Endpoint) when is_map(Endpoint) ->
     call(<<"store.put_endpoint">>, Endpoint).
