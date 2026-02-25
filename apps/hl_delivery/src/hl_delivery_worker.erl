@@ -238,11 +238,11 @@ do_http_post(URL, Secret, PayloadBin, EventId, Topic, AttemptId, _TenantId,
     Headers = [
         {<<"content-type">>,           <<"application/json">>},
         {<<"user-agent">>,             <<"HookLine/0.1.0">>},
-        %% Legacy x-gp-* headers (kept for backwards compat)
-        {<<"x-gp-event-id">>,          EventId},
-        {<<"x-gp-topic">>,             Topic},
-        {<<"x-gp-delivery-id">>,       AttemptId},
-        {<<"x-gp-timestamp">>,         TsBin},
+        %% x-hl-* headers
+        {<<"x-hl-event-id">>,          EventId},
+        {<<"x-hl-topic">>,             Topic},
+        {<<"x-hl-delivery-id">>,       AttemptId},
+        {<<"x-hl-timestamp">>,         TsBin},
         %% Standard x-hookline-* headers (ТЗ at-least-once contract)
         {<<"x-hookline-event-id">>,    EventId},
         {<<"x-hookline-delivery-id">>, AttemptId},
@@ -250,7 +250,7 @@ do_http_post(URL, Secret, PayloadBin, EventId, Topic, AttemptId, _TenantId,
         {<<"x-hookline-attempt">>,     AttemptNBin}
         | case SigHeader of
               undefined -> [];
-              Sig -> [{<<"x-gp-signature">>, Sig}]
+              Sig -> [{<<"x-hl-signature">>, Sig}]
           end
     ] ++ TraceHeaders ++ EpHeaders,
     http_post(URL, PayloadBin, Headers, TimeoutMs).

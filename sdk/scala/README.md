@@ -50,8 +50,8 @@ import io.hookline.HookLine
 // In your HTTP handler:
 val valid = HookLine.verifySignature(
   secret    = endpointSecret,
-  timestamp = request.header("x-gp-timestamp"),
-  signature = request.header("x-gp-signature"),
+  timestamp = request.header("x-hl-timestamp"),
+  signature = request.header("x-hl-signature"),
   body      = rawBodyBytes
 )
 if !valid then ZIO.fail("Invalid signature")

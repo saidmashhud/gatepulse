@@ -166,7 +166,7 @@ inline_ui_html() ->
       "    let body = m.body || '';",
       "    try { body = JSON.stringify(JSON.parse(body instanceof Uint8Array ? new TextDecoder().decode(body) : body), null, 2); } catch(e) {}",
       "    const ts = new Date(m.received_at).toLocaleString();",
-      "    const topic = (m.headers || []).find(([k]) => k === 'x-gp-topic');",
+      "    const topic = (m.headers || []).find(([k]) => k === 'x-hl-topic');",
       "    return `<div class=\"msg\">",
       "<div class=\"msg-time\">${ts}</div>",
       "${topic ? `<div class=\"msg-topic\">${topic[1]}</div>` : ''}",

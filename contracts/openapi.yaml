@@ -10,8 +10,8 @@ info:
     ```
 
     Webhook deliveries sent by HookLine include:
-    - `x-gp-timestamp`: Unix timestamp in milliseconds
-    - `x-gp-signature`: `v1=<hex(hmac_sha256(secret, "{timestamp}.{body}"))>`
+    - `x-hl-timestamp`: Unix timestamp in milliseconds
+    - `x-hl-signature`: `v1=<hex(hmac_sha256(secret, "{timestamp}.{body}"))>`
   version: "0.2.0"
   license:
     name: Apache 2.0

@@ -9,8 +9,8 @@ from hookline import HookLineClient
 
 # Example values (replace with real ones from your environment)
 raw_body = b'{"topic":"orders.created","data":{"order_id":"ord_123"}}'
-timestamp_header = "1710000000000"  # value of x-gp-timestamp request header
-signature_header = "v1=abc123..."  # value of x-gp-signature request header
+timestamp_header = "1710000000000"  # value of x-hl-timestamp request header
+signature_header = "v1=abc123..."  # value of x-hl-signature request header
 endpoint_secret = "my-endpoint-secret"
 
 is_valid = HookLineClient.verify_signature(

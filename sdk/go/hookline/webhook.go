@@ -41,13 +41,13 @@ type WebhookEvent struct {
 //	    w.WriteHeader(http.StatusOK)
 //	}
 func VerifyWebhook(body []byte, headers http.Header, secret string) (*WebhookEvent, error) {
-	sig := headers.Get("x-gp-signature")
+	sig := headers.Get("x-hl-signature")
 	if sig == "" {
-		return nil, fmt.Errorf("%w: missing x-gp-signature header", ErrInvalidSignature)
+		return nil, fmt.Errorf("%w: missing x-hl-signature header", ErrInvalidSignature)
 	}
-	ts := headers.Get("x-gp-timestamp")
+	ts := headers.Get("x-hl-timestamp")
 	if ts == "" {
-		return nil, fmt.Errorf("%w: missing x-gp-timestamp header", ErrInvalidSignature)
+		return nil, fmt.Errorf("%w: missing x-hl-timestamp header", ErrInvalidSignature)
 	}
 	// Signing input: "{timestamp_ms}.{body}"  (matches gp_core_signature.erl)
 	sigHex := strings.TrimPrefix(sig, "v1=")

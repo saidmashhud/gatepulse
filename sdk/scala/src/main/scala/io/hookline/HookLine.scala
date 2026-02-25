@@ -14,13 +14,13 @@ object HookLine:
 
   /** Verify the HMAC-SHA256 signature on an incoming webhook.
    *
-   *  Header format:   `x-gp-signature: v1=<hex>`
-   *  Header timestamp: `x-gp-timestamp: <unix-milliseconds>`
+   *  Header format:   `x-hl-signature: v1=<hex>`
+   *  Header timestamp: `x-hl-timestamp: <unix-milliseconds>`
    *  Signed payload:  `{timestamp}.{rawBody}`
    *
    *  @param secret    Endpoint secret (UTF-8 string)
-   *  @param timestamp Value of the `x-gp-timestamp` header
-   *  @param signature Value of the `x-gp-signature` header
+   *  @param timestamp Value of the `x-hl-timestamp` header
+   *  @param signature Value of the `x-hl-signature` header
    *  @param body      Raw request body bytes
    *  @return          `true` if signature is valid and not expired
    */

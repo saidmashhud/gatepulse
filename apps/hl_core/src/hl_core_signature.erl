@@ -18,7 +18,7 @@ verify(Secret, Input, Sig) when is_binary(Secret), is_binary(Input), is_binary(S
     Expected = sign(Secret, Input),
     crypto:hash_equals(Expected, Sig).
 
-%% Returns the X-GP-Signature header value: "v1=<hex>"
+%% Returns the X-HL-Signature header value: "v1=<hex>"
 %% Call with the full signing_input/2 result.
 header_value(Secret, TimestampMs, Body) when is_binary(Secret) ->
     Input = signing_input(TimestampMs, Body),

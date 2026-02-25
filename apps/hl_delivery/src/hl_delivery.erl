@@ -33,12 +33,12 @@ deliver(Job, Endpoint) ->
         <<>> -> [];
         S    ->
             Sig = hl_core_signature:header_value(S, Ts, Payload),
-            [{<<"x-gp-signature">>, Sig}]
+            [{<<"x-hl-signature">>, Sig}]
     end,
 
     Headers = [
         {<<"content-type">>,     <<"application/json">>},
-        {<<"x-gp-timestamp">>,   TsBin}
+        {<<"x-hl-timestamp">>,   TsBin}
         | SigHeaders
     ],
 

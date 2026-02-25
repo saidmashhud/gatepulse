@@ -9,11 +9,11 @@ HookLine delivers webhooks as `POST` requests with the following headers:
 | Header | Description |
 |--------|-------------|
 | `Content-Type` | `application/json` |
-| `x-gp-event-id` | Unique event ID |
-| `x-gp-topic` | Event topic (e.g. `orders.created`) |
-| `x-gp-delivery-id` | Unique delivery attempt identifier |
-| `x-gp-timestamp` | Unix millisecond timestamp |
-| `x-gp-signature` | HMAC-SHA256 signature (if endpoint has a secret) |
+| `x-hl-event-id` | Unique event ID |
+| `x-hl-topic` | Event topic (e.g. `orders.created`) |
+| `x-hl-delivery-id` | Unique delivery attempt identifier |
+| `x-hl-timestamp` | Unix millisecond timestamp |
+| `x-hl-signature` | HMAC-SHA256 signature (if endpoint has a secret) |
 | `traceparent` | W3C trace context (optional) |
 | `tracestate` | W3C trace state (optional) |
 
@@ -39,12 +39,12 @@ The body is a JSON envelope with delivery metadata and event payload:
 When an endpoint has a `secret` configured, HookLine signs each delivery:
 
 ```
-x-gp-signature: v1=<hex-encoded HMAC-SHA256>
+x-hl-signature: v1=<hex-encoded HMAC-SHA256>
 ```
 
 The signature is computed as:
 
-`HMAC-SHA256(secret, "{x-gp-timestamp}.{raw_body}")`
+`HMAC-SHA256(secret, "{x-hl-timestamp}.{raw_body}")`
 
 ### Node.js
 
@@ -68,8 +68,8 @@ function verifySignature(rawBodyBuffer, timestamp, signatureHeader, secret) {
 
 // In your Express handler:
 app.post("/webhook", express.raw({ type: "*/*" }), (req, res) => {
-  const ts = req.headers["x-gp-timestamp"];
-  const sig = req.headers["x-gp-signature"];
+  const ts = req.headers["x-hl-timestamp"];
+  const sig = req.headers["x-hl-signature"];
   if (!ts || !sig || !verifySignature(req.body, ts, sig, process.env.WEBHOOK_SECRET)) {
     return res.status(401).json({ error: "invalid signature" });
   }
@@ -96,8 +96,8 @@ def verify_signature(raw_body: bytes, timestamp: str, signature_header: str, sec
 @app.post("/webhook")
 async def webhook(request: Request):
     body = await request.body()
-    ts = request.headers.get("x-gp-timestamp", "")
-    sig = request.headers.get("x-gp-signature", "")
+    ts = request.headers.get("x-hl-timestamp", "")
+    sig = request.headers.get("x-hl-signature", "")
     if not ts or not verify_signature(body, ts, sig, os.environ["WEBHOOK_SECRET"]):
         return JSONResponse({"error": "invalid signature"}, status_code=401)
     envelope = json.loads(body)
@@ -131,7 +131,7 @@ HookLine delivers **at least once**. Always implement idempotent handlers:
 
 ```javascript
 // Store processed event IDs in your database
-const eventId = req.headers["x-gp-event-id"];
+const eventId = req.headers["x-hl-event-id"];
 if (await db.eventAlreadyProcessed(eventId)) {
   return res.json({ ok: true, skipped: true });
 }

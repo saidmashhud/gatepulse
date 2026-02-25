@@ -334,7 +334,7 @@ log "Scenario 9: Signature Headers"
 # Check inbox messages for signature headers
 if $DELIVERED; then
   FIRST_MSG=$(echo "$MESSAGES" | jq -r 'if type == "array" then .[0] elif .items then .items[0] elif .messages then .messages[0] else empty end')
-  HAS_SIG=$(echo "$FIRST_MSG" | jq -r '.headers // {} | keys[] | select(startswith("x-gp-signature") or startswith("X-GP-Signature"))' 2>/dev/null || echo "")
+  HAS_SIG=$(echo "$FIRST_MSG" | jq -r '.headers // {} | keys[] | select(startswith("x-hl-signature") or startswith("X-HL-Signature"))' 2>/dev/null || echo "")
   if [ -n "$HAS_SIG" ]; then
     pass "webhook contains HMAC signature header"
   else

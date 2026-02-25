@@ -171,11 +171,11 @@ curl -X POST http://localhost:8080/v1/events \
 ## Webhook Signature Verification
 
 Every request includes:
-- `X-GP-Event-Id` — unique event identifier
-- `X-GP-Topic` — event topic
-- `X-GP-Delivery-Id` — delivery attempt identifier
-- `X-GP-Timestamp` — Unix timestamp in milliseconds
-- `X-GP-Signature` — HMAC-SHA256 signature
+- `X-HL-Event-Id` — unique event identifier
+- `X-HL-Topic` — event topic
+- `X-HL-Delivery-Id` — delivery attempt identifier
+- `X-HL-Timestamp` — Unix timestamp in milliseconds
+- `X-HL-Signature` — HMAC-SHA256 signature
 - `traceparent` — W3C Trace Context (if provided on publish)
 - `tracestate` — W3C Trace Context (if provided on publish)
 
@@ -197,13 +197,13 @@ function verifySignature(secret, timestamp, body, signature) {
 }
 
 app.post('/webhook', (req, res) => {
-  const ts  = req.headers['x-gp-timestamp'];
-  const sig = req.headers['x-gp-signature'];
+  const ts  = req.headers['x-hl-timestamp'];
+  const sig = req.headers['x-hl-signature'];
   if (!verifySignature('my-secret', ts, req.body, sig)) {
     return res.status(401).send('Unauthorized');
   }
-  // Process idempotently using x-gp-event-id
-  const eventId = req.headers['x-gp-event-id'];
+  // Process idempotently using x-hl-event-id
+  const eventId = req.headers['x-hl-event-id'];
   // ... handle event
   res.sendStatus(200);
 });
@@ -220,11 +220,11 @@ def verify_signature(secret: str, timestamp: str, body: bytes, signature: str) -
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    ts  = request.headers.get('X-GP-Timestamp')
-    sig = request.headers.get('X-GP-Signature')
+    ts  = request.headers.get('X-HL-Timestamp')
+    sig = request.headers.get('X-HL-Signature')
     if not verify_signature('my-secret', ts, request.data, sig):
         return 'Unauthorized', 401
-    event_id = request.headers.get('X-GP-Event-Id')
+    event_id = request.headers.get('X-HL-Event-Id')
     # Idempotency: skip if event_id already processed
     return 'OK', 200
 ```

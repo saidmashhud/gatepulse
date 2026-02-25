@@ -136,8 +136,8 @@ delivery_signature_header_test_() ->
          hl_delivery:deliver(?JOB, ?ENDPOINT),
          receive
              {called, _Url, Headers, _Body} ->
-                 Sig = proplists:get_value(<<"x-gp-signature">>, Headers),
-                 Ts  = proplists:get_value(<<"x-gp-timestamp">>, Headers),
+                 Sig = proplists:get_value(<<"x-hl-signature">>, Headers),
+                 Ts  = proplists:get_value(<<"x-hl-timestamp">>, Headers),
                  ?assert(is_binary(Sig)),
                  ?assertMatch(<<"v1=", _/binary>>, Sig),
                  ?assert(is_binary(Ts))

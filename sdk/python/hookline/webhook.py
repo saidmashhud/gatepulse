@@ -56,12 +56,12 @@ def verify_webhook(
     """
     # Normalise headers to lowercase keys
     norm = {k.lower(): v for k, v in headers.items()}
-    sig = norm.get("x-gp-signature", "")
+    sig = norm.get("x-hl-signature", "")
     if not sig:
-        raise InvalidSignatureError("Missing x-gp-signature header")
-    ts = norm.get("x-gp-timestamp", "")
+        raise InvalidSignatureError("Missing x-hl-signature header")
+    ts = norm.get("x-hl-timestamp", "")
     if not ts:
-        raise InvalidSignatureError("Missing x-gp-timestamp header")
+        raise InvalidSignatureError("Missing x-hl-timestamp header")
 
     if isinstance(body, str):
         body = body.encode()

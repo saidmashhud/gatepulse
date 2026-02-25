@@ -57,8 +57,7 @@ HL_MASTER_KEY=<32-byte-hex>
 - [ ] Container restart policy is `unless-stopped` or `always`
 - [ ] `/healthz` and `/readyz` are wired to load balancer health checks
 - [ ] Prometheus scrape configured for port `8080/metrics`
-- [ ] Grafana dashboard imported (`grafana/dashboards/gatepulse.json`)
-- [ ] Alert rules loaded (`prometheus/alerts.yml`)
+- [ ] Grafana dashboard imported (`observability/grafana/dashboards/hookline.json`)
 - [ ] Firewall: port `8080` accessible only from trusted networks
 
 ## Backup
@@ -79,7 +78,7 @@ HL_MASTER_KEY=<32-byte-hex>
 
 ## Monitoring Alerts
 
-Minimum alerts to configure (see `prometheus/alerts.yml`):
+Minimum alerts to configure:
 
 | Alert | Threshold | Action |
 |-------|-----------|--------|
