@@ -14,9 +14,7 @@
 execute(Req, Env) ->
     Path = cowboy_req:path(Req),
     IsPublic = lists:member(Path, ?PUBLIC_PATHS) orelse
-               binary:match(Path, <<"/v1/dev/inbox/receive/">>) =/= nomatch orelse
-               binary:match(Path, <<"/v1/billing/webhooks/">>) =/= nomatch orelse
-               binary:match(Path, <<"/console">>) =/= nomatch,
+               binary:match(Path, <<"/v1/dev/inbox/receive/">>) =/= nomatch,
     case IsPublic of
         true ->
             {ok, Req, Env};

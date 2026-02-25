@@ -30,17 +30,20 @@ theme:
 nav:
   - Home: index.md
   - Why HookLine: why-hookline.md
+  - Concepts:
+    - Multi-tenancy: multi-tenancy.md
+    - WebSocket: websocket.md
   - Tutorials:
     - Express + Webhooks: tutorials/express-webhooks.md
     - FastAPI + Webhooks: tutorials/fastapi-webhooks.md
   - Production:
-    - Deployment Checklist: production/checklist.md
     - HA Deployment: production/ha-deployment.md
     - Backup & Recovery: production/backup.md
     - Secrets Rotation: production/secrets-rotation.md
-    - Postgres Backend: production/postgres-backend.md
     - Webhook Consumer Guide: production/webhook-consumer-guide.md
+    - Production Readiness: production/readiness-gate.md
   - Changelog:
+    - v2.1: releases/v2.1.md
     - v2.0: releases/v2.0.md
     - v1.3: releases/v1.3.md
     - v1.2: releases/v1.2.md

@@ -44,19 +44,19 @@ teardown(_) ->
 
 delivery_success_200_test_() ->
     {setup, fun setup/0, fun teardown/1,
-     fun(_) ->
+     fun(_) -> fun() ->
          meck:expect(hl_delivery_http, post, fun(_, _, _) ->
              {ok, 200, [], <<"{\"ok\":true}">>}
          end),
          Result = hl_delivery:deliver(?JOB, ?ENDPOINT),
          ?assertMatch({ok, delivered}, Result)
-     end}.
+     end end}.
 
 %% ─── Test: 500 response → retry scheduled ────────────────────────────────────
 
 delivery_retry_on_500_test_() ->
     {setup, fun setup/0, fun teardown/1,
-     fun(_) ->
+     fun(_) -> fun() ->
          %% First call: 500. Second call: 200.
          meck:sequence(hl_delivery_http, post, 3,
              [{ok, 500, [], <<"error">>},
@@ -66,26 +66,26 @@ delivery_retry_on_500_test_() ->
          Job2 = ?JOB#{attempt_count := 2},
          Result2 = hl_delivery:deliver(Job2, ?ENDPOINT),
          ?assertMatch({ok, delivered}, Result2)
-     end}.
+     end end}.
 
 %% ─── Test: 400 client error → DLQ immediately (no retry) ────────────────────
 
 delivery_no_retry_on_400_test_() ->
     {setup, fun setup/0, fun teardown/1,
-     fun(_) ->
+     fun(_) -> fun() ->
          meck:expect(hl_delivery_http, post, fun(_, _, _) ->
              {ok, 400, [], <<"{\"error\":\"bad request\"}">>}
          end),
          Result = hl_delivery:deliver(?JOB, ?ENDPOINT),
          %% 4xx is not retried — goes straight to DLQ
          ?assertMatch({dlq, <<"http_4xx">>}, Result)
-     end}.
+     end end}.
 
 %% ─── Test: max attempts → DLQ ────────────────────────────────────────────────
 
 delivery_dlq_after_max_test_() ->
     {setup, fun setup/0, fun teardown/1,
-     fun(_) ->
+     fun(_) -> fun() ->
          meck:expect(hl_delivery_http, post, fun(_, _, _) ->
              {ok, 503, [], <<"service unavailable">>}
          end),
@@ -93,25 +93,25 @@ delivery_dlq_after_max_test_() ->
          MaxJob = ?JOB#{attempt_count := 5, max_attempts := 5},
          Result = hl_delivery:deliver(MaxJob, ?ENDPOINT),
          ?assertMatch({dlq, _Reason}, Result)
-     end}.
+     end end}.
 
 %% ─── Test: network error → retry ─────────────────────────────────────────────
 
 delivery_retry_on_network_error_test_() ->
     {setup, fun setup/0, fun teardown/1,
-     fun(_) ->
+     fun(_) -> fun() ->
          meck:expect(hl_delivery_http, post, fun(_, _, _) ->
              {error, econnrefused}
          end),
          Result = hl_delivery:deliver(?JOB, ?ENDPOINT),
          ?assertMatch({retry, _NextAttemptAt}, Result)
-     end}.
+     end end}.
 
 %% ─── Test: rate limit respected (tokens consumed) ────────────────────────────
 
 delivery_rate_limit_test_() ->
     {setup, fun setup/0, fun teardown/1,
-     fun(_) ->
+     fun(_) -> fun() ->
          %% Endpoint allows 2 req/s; 3rd request should be throttled
          ThrottledEndpoint = ?ENDPOINT#{rate_limit_rps := 2},
          meck:expect(hl_delivery_http, post, fun(_, _, _) ->
@@ -121,13 +121,13 @@ delivery_rate_limit_test_() ->
          ok = hl_delivery:consume_rate_token(ThrottledEndpoint),
          Result = hl_delivery:consume_rate_token(ThrottledEndpoint),
          ?assertMatch({error, rate_limited}, Result)
-     end}.
+     end end}.
 
 %% ─── Test: signature is attached to outgoing request ─────────────────────────
 
 delivery_signature_header_test_() ->
     {setup, fun setup/0, fun teardown/1,
-     fun(_) ->
+     fun(_) -> fun() ->
          Self = self(),
          meck:expect(hl_delivery_http, post, fun(Url, Headers, Body) ->
              Self ! {called, Url, Headers, Body},
@@ -144,7 +144,7 @@ delivery_signature_header_test_() ->
          after 1000 ->
              ?assert(false)
          end
-     end}.
+     end end}.
 
 %% ─── Test: retry back-off schedule ───────────────────────────────────────────
 
@@ -164,7 +164,7 @@ delivery_backoff_schedule_test_() ->
 
 delivery_records_attempt_test_() ->
     {setup, fun setup/0, fun teardown/1,
-     fun(_) ->
+     fun(_) -> fun() ->
          meck:new(hl_delivery_store, [non_strict]),
          meck:expect(hl_delivery_http, post, fun(_, _, _) ->
              {ok, 200, [], <<"ok">>}
@@ -176,4 +176,4 @@ delivery_records_attempt_test_() ->
          hl_delivery:deliver(?JOB, ?ENDPOINT),
          ?assert(meck:called(hl_delivery_store, record_attempt, '_')),
          meck:unload(hl_delivery_store)
-     end}.
+     end end}.

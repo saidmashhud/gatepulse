@@ -90,6 +90,12 @@ dev-multi: c-build ## Start two-tenant dev environment (HL_SINGLE_TENANT=false)
 	@sleep 0.3
 	HL_SINGLE_TENANT=false HL_API_KEY=dev-secret rebar3 shell
 
+# ── Assets ────────────────────────────────────────────────────────────────
+
+assets: ## Copy console assets to priv/console/
+	@mkdir -p apps/hl_api/priv/console
+	@echo "Console assets are in apps/hl_api/priv/console/index.html"
+
 # ── Clean ─────────────────────────────────────────────────────────────────
 
 clean: ## Remove build artifacts

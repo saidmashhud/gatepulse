@@ -1,5 +1,7 @@
 # HookLine
 
+> **What is HookLine?** A single-binary, Docker-first webhook delivery service. Drop it into any stack — publish events via REST, and HookLine durably delivers them to your HTTP endpoints with retries, signatures, and replay. No external dependencies, no JVM, no message broker. Just `docker run`.
+
 **HookLine** is an open-source webhook delivery service — a self-hosted alternative to Svix/Hookdeck. It accepts events, durably stores them in a custom C-based append-only log, and delivers them to your HTTP endpoints with retries, signatures, and replay.
 
 ## Features
@@ -16,39 +18,18 @@
 - **Prometheus metrics** at `/metrics`
 - **Single Docker container** — no external dependencies
 
-## Deployment modes
+## Multi-tenancy
 
-### Standalone
-
-HookLine runs as a fully self-contained service. Your application publishes
-events and manages endpoints directly via the HookLine REST API.
-
-```bash
-docker-compose up -d
-```
-
-### Embedded (control-plane managed)
-
-In embedded mode, HookLine handles **delivery** only. A control-plane service
-(such as [Mashgate `mg-events`](https://github.com/saidmashhud/mashgate)) owns
-endpoint registration and subscription management, and calls HookLine using a
-tenant-scoped API key.
+HookLine supports both single-tenant (default) and multi-tenant deployments.
+In multi-tenant mode, each tenant gets isolated endpoints, events, and API keys.
 
 ```bash
 HL_ADMIN_KEY=<admin-secret> \
 HL_SINGLE_TENANT=false \
 docker compose up -d
-
-# Create a tenant for the control-plane (e.g. Mashgate)
-curl -H "Authorization: Bearer <admin-secret>" \
-  -X POST http://localhost:8080/v1/tenants \
-  -d '{"id":"mashgate","name":"Mashgate Platform"}'
-# → { "api_key": "hl_live_..." }
 ```
 
-Admin API isolation is handled at the network layer (docker network policy,
-Kubernetes NetworkPolicy) — not via a special auth mode. See
-[docs/multi-tenancy.md](docs/multi-tenancy.md) for the full setup guide.
+See [docs/multi-tenancy.md](docs/multi-tenancy.md) for the full setup guide.
 
 ---
 
@@ -153,31 +134,6 @@ _ = wsc.Publish("orders.created", map[string]any{"id": "123"}, "")
 See [docs/websocket.md](docs/websocket.md) for the full protocol reference.
 
 ---
-
-## Billing
-
-HookLine includes a built-in SaaS billing system with per-plan quotas, usage tracking, and [mgPay](https://mashgate.io) payment integration.
-
-| Plan | Events/mo | Endpoints | WebSocket | Price |
-|------|-----------|-----------|-----------|-------|
-| free | 10K | 3 | No | $0 |
-| starter | 100K | 10 | No | $29 |
-| growth | 1M | unlimited | **Yes** | $99 |
-| business | 10M | unlimited | **Yes** | $399 |
-| enterprise | unlimited | unlimited | **Yes** | custom |
-
-Overage: $1 per 10,000 events above the monthly limit (paid plans only).
-
-Billing is **disabled by default** (`HL_BILLING_ENABLED=false`). To enable:
-
-```bash
-export HL_BILLING_ENABLED=true
-export HL_MASHGATE_URL=https://pay.mashgate.io
-export HL_MASHGATE_API_KEY=your_key
-export HL_MASHGATE_WEBHOOK_SECRET=your_secret
-```
-
-See [`docs/billing.md`](docs/billing.md) for the full API reference, webhook setup, and admin endpoints.
 
 ---
 
@@ -290,12 +246,14 @@ def webhook():
 | `HL_RETRY_MAX_ATTEMPTS` | `10` | Max delivery attempts |
 | `HL_RETENTION_SECS` | `604800` | Event retention (7 days) |
 | `HL_DELIVERY_WORKERS` | `16` | Concurrent delivery workers |
+| `HL_CONSOLE_ENABLED` | `true` | Enable/disable the web console |
+| `HL_CONSOLE_PASS` | — | Optional Basic Auth password for `/console` (user: `admin`) |
 
 ---
 
 ## API Reference
 
-Canonical OpenAPI source is [`openapi/openapi.yaml`](openapi/openapi.yaml).
+Canonical OpenAPI source is [`contracts/openapi.yaml`](contracts/openapi.yaml).
 Runtime endpoint **`/openapi.yaml`** serves the same contract.
 
 Key endpoints:
@@ -378,9 +336,6 @@ rebar3 eunit
 # Run integration tests (requires running instance)
 HL_URL=http://localhost:8080 HL_API_KEY=<api-key> ./test/integration.sh
 
-# Run embedded mode tests (requires HL_EMBEDDED_MODE=true)
-HL_URL=http://localhost:8080 HL_SERVICE_TOKEN=super-secret ./test/embedded-mode.sh
-
 # Run trace propagation tests
 HL_URL=http://localhost:8080 HL_API_KEY=<api-key> ./test/trace-propagation.sh
 
@@ -395,7 +350,7 @@ docker-compose up
 
 ## Used by
 
-**[Mashgate](https://github.com/saidmashhud/mashgate)** — open-source payments, identity, and webhook platform for Central Asia — uses HookLine as its webhook delivery engine via embedded mode. The `mg-events` gRPC service acts as the control plane; HookLine handles delivery, retry, DLQ, and SSE streaming.
+**[Mashgate](https://github.com/saidmashhud/mashgate)** — open-source payment infrastructure for Central Asia — uses HookLine for webhook delivery.
 
 ## Contributing
 

@@ -5,7 +5,7 @@ Thank you for your interest in contributing! 🎉
 ## Development Setup
 
 ### Prerequisites
-- Erlang/OTP 27+
+- Erlang/OTP 28+
 - rebar3
 - GCC / Clang (for C daemon)
 - Docker (optional, for integration tests)
@@ -43,7 +43,7 @@ make dev
 ### C
 - C11 standard
 - `snake_case` for all identifiers
-- `gp_` prefix for all public symbols
+- `hl_` prefix for all public symbols
 - No memory leaks (verify with valgrind)
 - No compiler warnings (`-Wall -Wextra`)
 

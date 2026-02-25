@@ -18,17 +18,26 @@
     --ok-bg:#e6f7ee;--fail-bg:#fde8e8;--warn-bg:#fef9e7}
 }
 body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
+/* Login screen */
+#login-screen{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+#login-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:40px;width:380px;text-align:center}
+#login-box h1{color:var(--accent);font-size:22px;margin-bottom:8px}
+#login-box p{color:var(--muted);font-size:13px;margin-bottom:24px}
+#login-box input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:10px 14px;font-size:14px;margin-bottom:12px}
+#login-box button{width:100%;background:var(--accent);border:none;color:#fff;padding:10px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600}
+#login-box button:hover{opacity:.9}
+#login-error{color:var(--fail);font-size:12px;margin-top:8px;display:none}
+/* App shell (hidden until login) */
+#app{display:none;width:100%;height:100%}
 #sidebar{width:196px;background:var(--sidebar);border-right:1px solid var(--border);padding:0;flex-shrink:0;display:flex;flex-direction:column}
 #sidebar-brand{color:var(--accent);padding:18px 20px 14px;font-size:16px;font-weight:700;border-bottom:1px solid var(--border)}
 .nav-item{padding:10px 20px;cursor:pointer;font-size:13px;color:var(--muted);transition:all .15s;border-left:3px solid transparent}
 .nav-item:hover{background:var(--surface);color:var(--text)}
 .nav-item.active{background:var(--surface);color:var(--text);border-left-color:var(--accent)}
-#sidebar-footer{margin-top:auto;padding:12px 20px;font-size:11px;color:var(--muted);border-top:1px solid var(--border)}
+#sidebar-footer{margin-top:auto;padding:12px 20px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+#sidebar-footer button{background:none;border:none;color:var(--fail);cursor:pointer;font-size:11px}
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 #topbar{background:var(--sidebar);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-#topbar .key-wrap{position:relative;display:flex;align-items:center}
-#topbar input[type=password],#topbar input[type=text]{background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 30px 6px 10px;font-size:13px;width:260px}
-.eye-btn{position:absolute;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0}
 #topbar button{background:var(--accent);border:none;color:#fff;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px}
 #topbar button.sec{background:var(--surface);border:1px solid var(--border);color:var(--text)}
 #status{font-size:12px;margin-left:4px}
@@ -61,7 +70,6 @@ tr:hover td{background:var(--surface)}
 pre.json{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:10px;font-size:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto;margin-top:8px}
 .mono{font-family:monospace;font-size:11px}
 .truncate{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Detail panel */
 #detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;align-items:flex-start;justify-content:flex-end}
 #detail-overlay.open{display:flex}
 #detail-panel{width:min(640px,100vw);height:100vh;background:var(--sidebar);border-left:1px solid var(--border);overflow-y:auto;padding:24px;animation:slideIn .2s ease}
@@ -70,17 +78,14 @@ pre.json{background:var(--bg);border:1px solid var(--border);border-radius:4px;p
 #detail-panel .detail-row{margin-bottom:12px}
 #detail-panel .detail-label{font-size:11px;color:var(--muted);margin-bottom:4px}
 #detail-close{float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1}
-/* Onboarding */
 .onboarding{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:32px;max-width:640px;margin:0 auto}
 .onboarding h2{color:var(--accent);margin-bottom:10px}
 .onboarding p{color:var(--muted);font-size:14px;margin-bottom:20px;line-height:1.6}
 .onboarding pre{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px;font-size:12px;margin-bottom:20px;white-space:pre-wrap}
 .onboarding .actions{display:flex;gap:10px;flex-wrap:wrap}
-/* Inline test result */
 .test-result{margin-top:8px;padding:10px;border-radius:6px;font-size:12px;font-family:monospace}
 .test-result.ok{background:var(--ok-bg);color:var(--ok)}
 .test-result.fail{background:var(--fail-bg);color:var(--fail)}
-/* Mobile */
 @media(max-width:600px){
   #sidebar{width:100%;height:auto;flex-direction:row;border-right:none;border-bottom:1px solid var(--border);padding:0}
   #sidebar-brand{padding:12px 16px}
@@ -92,8 +97,22 @@ pre.json{background:var(--bg);border:1px solid var(--border);border-radius:4px;p
 </style>
 </head>
 <body>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div id="login-box">
+    <h1>HookLine Console</h1>
+    <p>Enter your API key to access the console</p>
+    <input type="password" id="login-key" placeholder="API Key" autofocus>
+    <button onclick="doLogin()">Sign In</button>
+    <div id="login-error">Invalid API key</div>
+  </div>
+</div>
+
+<!-- App Shell -->
+<div id="app">
 <div id="sidebar">
-  <div id="sidebar-brand">⚡ HookLine</div>
+  <div id="sidebar-brand">HookLine</div>
   <div class="nav-item active" data-panel="dashboard">Dashboard</div>
   <div class="nav-item" data-panel="events">Events</div>
   <div class="nav-item" data-panel="endpoints">Endpoints</div>
@@ -101,14 +120,14 @@ pre.json{background:var(--bg);border:1px solid var(--border);border-radius:4px;p
   <div class="nav-item" data-panel="deliveries">Deliveries</div>
   <div class="nav-item" data-panel="dlq">DLQ</div>
   <div class="nav-item" data-panel="stream">Live Stream</div>
-  <div id="sidebar-footer">HookLine Console</div>
+  <div class="nav-item" data-panel="tenants">Tenants</div>
+  <div id="sidebar-footer">
+    <span>HookLine Console</span>
+    <button onclick="doLogout()">Logout</button>
+  </div>
 </div>
 <div id="main">
   <div id="topbar">
-    <div class="key-wrap">
-      <input type="password" id="apiKey" placeholder="API Key" oninput="saveKey()">
-      <button class="eye-btn" onclick="toggleKeyVis()" title="Show/hide">👁</button>
-    </div>
     <button onclick="refreshCurrent()">Refresh</button>
     <button class="sec" onclick="triggerCompact()">Compact</button>
     <span id="status"></span>
@@ -140,8 +159,8 @@ pre.json{background:var(--bg);border:1px solid var(--border);border-radius:4px;p
       <table><thead><tr><th>Topic</th><th>Event ID</th><th>Created At</th><th></th></tr></thead>
       <tbody id="ev-table"></tbody></table>
       <div style="margin-top:12px;display:flex;gap:10px">
-        <button class="btn-sec" id="ev-prev" onclick="evPage(-1)" style="display:none">← Prev</button>
-        <button class="btn-sec" id="ev-next" onclick="evPage(1)" style="display:none">Next →</button>
+        <button class="btn-sec" id="ev-prev" onclick="evPage(-1)" style="display:none">Prev</button>
+        <button class="btn-sec" id="ev-next" onclick="evPage(1)" style="display:none">Next</button>
       </div>
     </div>
 
@@ -215,20 +234,36 @@ pre.json{background:var(--bg);border:1px solid var(--border);border-radius:4px;p
       <div style="margin-top:8px;font-size:12px;color:var(--muted)"><span id="stream-count">0</span> events (last 50 kept)</div>
     </div>
 
+    <!-- Tenants (admin-only) -->
+    <div class="panel" id="panel-tenants">
+      <h3>Tenant Management</h3>
+      <div class="form-row">
+        <div><label>Tenant Name</label><input type="text" id="tenant-name" placeholder="acme-corp" style="width:200px"></div>
+        <button class="btn-sm" onclick="createTenant()">Create Tenant</button>
+        <button class="btn-sec" onclick="loadTenants()">Refresh</button>
+      </div>
+      <table><thead><tr><th>Tenant ID</th><th>Name</th><th>Created</th><th>API Keys</th><th>Actions</th></tr></thead>
+      <tbody id="tenant-table"></tbody></table>
+    </div>
+
   </div>
+</div>
 </div>
 
 <!-- Detail slide-over panel -->
 <div id="detail-overlay" onclick="closeDetail(event)">
   <div id="detail-panel">
-    <button id="detail-close" onclick="closeDetail()">×</button>
+    <button id="detail-close" onclick="closeDetail()">x</button>
     <div id="detail-content"></div>
   </div>
 </div>
 
 <script>
+// ── Config (injected by server) ──────────────────────────────────────────────
+const hlConfig = window.__HL_CONFIG__ || {};
+
 // ── State ────────────────────────────────────────────────────────────────────
-let apiKey = localStorage.getItem('gp_api_key') || '';
+let apiKey = localStorage.getItem('hl_api_key') || '';
 let currentPanel = 'dashboard';
 let es = null;
 let streamPaused = false;
@@ -237,22 +272,47 @@ let evCursor = null;
 let evCursorStack = [];
 let dlqSelected = new Set();
 
-document.getElementById('apiKey').value = apiKey;
+// ── Login ────────────────────────────────────────────────────────────────────
+function doLogin() {
+  const key = document.getElementById('login-key').value.trim();
+  if (!key) return;
+  apiKey = key;
+  localStorage.setItem('hl_api_key', apiKey);
+  // Verify the key works
+  fetch('/healthz').then(() => {
+    enterApp();
+  });
+}
+
+function doLogout() {
+  apiKey = '';
+  localStorage.removeItem('hl_api_key');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-key').value = '';
+  if (es) { es.close(); es = null; }
+}
+
+function enterApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  loadStats();
+}
+
+// Auto-login if key exists
+if (apiKey) {
+  document.getElementById('login-key').value = apiKey;
+  enterApp();
+}
+
+document.getElementById('login-key').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doLogin();
+});
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
 document.querySelectorAll('.nav-item').forEach(el => {
   el.addEventListener('click', () => showPanel(el.dataset.panel, el));
 });
-
-function saveKey() {
-  apiKey = document.getElementById('apiKey').value;
-  localStorage.setItem('gp_api_key', apiKey);
-}
-
-function toggleKeyVis() {
-  const inp = document.getElementById('apiKey');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-}
 
 function setStatus(msg, ok=true) {
   const s = document.getElementById('status');
@@ -273,6 +333,7 @@ function showPanel(name, el) {
   else if (name==='subscriptions') loadSubscriptions();
   else if (name==='deliveries')    loadDeliveries();
   else if (name==='dlq')           loadDlq();
+  else if (name==='tenants')       loadTenants();
 }
 
 function refreshCurrent() { showPanel(currentPanel); }
@@ -283,6 +344,7 @@ function hdr() { return {'Authorization':'Bearer '+apiKey,'Content-Type':'applic
 async function api(method, path, body) {
   try {
     const r = await fetch(path, {method, headers:hdr(), body:body?JSON.stringify(body):undefined});
+    if (r.status === 401) { doLogout(); return [false, {}, 401]; }
     const ct = r.headers.get('content-type')||'';
     const d = ct.includes('json') ? await r.json() : {};
     if (!r.ok) setStatus((d.message||d.error||'HTTP '+r.status), false);
@@ -312,7 +374,7 @@ async function checkOnboarding() {
   card.style.display = 'block';
   card.innerHTML = `
     <div class="onboarding">
-      <h2>👋 Welcome to HookLine!</h2>
+      <h2>Welcome to HookLine!</h2>
       <p>No events yet. Publish your first event to see the system in action:</p>
       <pre>curl -X POST ${location.origin}/v1/events \\
   -H "Authorization: Bearer ${key}" \\
@@ -333,10 +395,10 @@ async function publishTestEvent() {
   });
   const el = document.getElementById('test-event-result');
   if (ok) {
-    el.innerHTML = `<div class="test-result ok">✓ Event published: ${d.id||d.event_id||''}</div>`;
+    el.innerHTML = `<div class="test-result ok">Event published: ${d.id||d.event_id||''}</div>`;
     setTimeout(() => { loadStats(); showPanel('events'); }, 1200);
   } else {
-    el.innerHTML = `<div class="test-result fail">✗ Failed to publish</div>`;
+    el.innerHTML = `<div class="test-result fail">Failed to publish</div>`;
   }
 }
 
@@ -369,7 +431,7 @@ async function loadEvents(cursor) {
     ? items.map(e => `
         <tr>
           <td>${esc(e.topic||'')}</td>
-          <td class="mono truncate" title="${esc(e.id||'')}">…${(e.id||'').slice(-12)}</td>
+          <td class="mono truncate" title="${esc(e.id||'')}">...${(e.id||'').slice(-12)}</td>
           <td>${e.created_at ? fmt(e.created_at) : ''}</td>
           <td><button class="btn-link" onclick="showEventDetail('${esc(e.id||'')}')">View</button></td>
         </tr>`).join('')
@@ -390,14 +452,13 @@ function evPage(dir) {
 // ── Event detail slide-over ──────────────────────────────────────────────────
 async function showEventDetail(id) {
   const dc = document.getElementById('detail-content');
-  dc.innerHTML = '<p style="color:var(--muted)">Loading…</p>';
+  dc.innerHTML = '<p style="color:var(--muted)">Loading...</p>';
   openDetail();
 
   const [ok, d] = await api('GET', '/v1/events/'+id);
   if (!ok) { dc.innerHTML = '<p style="color:var(--fail)">Failed to load event</p>'; return; }
   const ev = d.event || d;
 
-  // Load deliveries linked to this event
   const [, dd] = await api('GET', '/v1/deliveries?event_id='+id+'&limit=20');
   const attempts = dd.items || [];
 
@@ -436,7 +497,7 @@ async function showEventDetail(id) {
 // ── Delivery detail ──────────────────────────────────────────────────────────
 async function showDeliveryDetail(id) {
   const dc = document.getElementById('detail-content');
-  dc.innerHTML = '<p style="color:var(--muted)">Loading…</p>';
+  dc.innerHTML = '<p style="color:var(--muted)">Loading...</p>';
   openDetail();
 
   const [ok, d] = await api('GET', '/v1/deliveries/'+id);
@@ -444,7 +505,7 @@ async function showDeliveryDetail(id) {
   const a = d.attempt || d;
 
   let respBody = a.response_body || '';
-  if (respBody.length > 4096) respBody = respBody.slice(0, 4096) + '\n… (truncated)';
+  if (respBody.length > 4096) respBody = respBody.slice(0, 4096) + '\n... (truncated)';
 
   dc.innerHTML = `
     <h4>Delivery Attempt</h4>
@@ -485,7 +546,7 @@ async function loadEndpoints() {
             <button class="btn-danger" style="margin-left:6px" onclick="deleteEndpoint('${esc(e.endpoint_id||e.id||'')}')">Delete</button>
           </td>
         </tr>`).join('')
-    : '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:20px">No endpoints — create one above</td></tr>';
+    : '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:20px">No endpoints</td></tr>';
 }
 
 async function createEndpoint() {
@@ -508,17 +569,17 @@ async function deleteEndpoint(id) {
 
 async function testEndpoint(id, url) {
   const resultEl = document.getElementById('ep-test-result');
-  resultEl.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-top:8px">Sending test event…</div>';
+  resultEl.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-top:8px">Sending test event...</div>';
   const [ok, d] = await api('POST', '/v1/events', {
     topic: 'hookline.test',
     payload: {endpoint_id: id, ts: Date.now(), source: 'console-test'}
   });
   if (ok) {
     const evId = d.id || d.event_id || '';
-    resultEl.innerHTML = `<div class="test-result ok" style="margin-top:8px">✓ Test event sent (id: ${esc(evId)}) → Delivery to ${esc(url)} should appear in Deliveries tab</div>`;
+    resultEl.innerHTML = `<div class="test-result ok" style="margin-top:8px">Test event sent (id: ${esc(evId)})</div>`;
     setTimeout(() => showPanel('deliveries'), 2000);
   } else {
-    resultEl.innerHTML = `<div class="test-result fail" style="margin-top:8px">✗ Failed to send test event</div>`;
+    resultEl.innerHTML = `<div class="test-result fail" style="margin-top:8px">Failed to send test event</div>`;
   }
 }
 
@@ -596,7 +657,7 @@ async function loadDlq() {
           </td>
         </tr>`;
       }).join('')
-    : '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">DLQ is empty ✓</td></tr>';
+    : '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">DLQ is empty</td></tr>';
 }
 
 function dlqToggleAll(cb) {
@@ -647,11 +708,11 @@ function startStream() {
   updatePauseBtn();
   const topic = document.getElementById('stream-topic').value || '#';
   const feed = document.getElementById('stream-feed');
-  feed.innerHTML = '<div style="color:var(--muted);padding:8px">Connecting…</div>';
+  feed.innerHTML = '<div style="color:var(--muted);padding:8px">Connecting...</div>';
   const url = '/v1/stream?topic='+encodeURIComponent(topic);
   es = new EventSource(url);
   es.onopen = () => {
-    document.getElementById('stream-status').textContent = '● Connected';
+    document.getElementById('stream-status').textContent = 'Connected';
     document.getElementById('stream-status').style.color = 'var(--ok)';
     feed.innerHTML = '';
   };
@@ -671,7 +732,7 @@ function startStream() {
     } catch(_) {}
   };
   es.onerror = () => {
-    document.getElementById('stream-status').textContent = '● Disconnected';
+    document.getElementById('stream-status').textContent = 'Disconnected';
     document.getElementById('stream-status').style.color = 'var(--fail)';
   };
 }
@@ -688,6 +749,83 @@ function toggleStreamPause() {
 
 function updatePauseBtn() {
   document.getElementById('stream-pause-btn').textContent = streamPaused ? 'Resume' : 'Pause';
+}
+
+// ── Tenants ──────────────────────────────────────────────────────────────────
+async function loadTenants() {
+  const [ok, d] = await api('GET', '/v1/tenants');
+  if (!ok) {
+    document.getElementById('tenant-table').innerHTML =
+      '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">Requires admin key and multi-tenant mode</td></tr>';
+    return;
+  }
+  const items = d.items || d.tenants || [];
+  document.getElementById('tenant-table').innerHTML = items.length
+    ? items.map(t => `
+        <tr>
+          <td class="mono">${esc(t.tenant_id||t.id||'')}</td>
+          <td>${esc(t.name||'')}</td>
+          <td>${t.created_at ? fmt(t.created_at) : ''}</td>
+          <td>${t.api_key_count ?? ''}</td>
+          <td>
+            <button class="btn-link" onclick="showTenantKeys('${esc(t.tenant_id||t.id||'')}')">Keys</button>
+            <button class="btn-danger" style="margin-left:6px" onclick="deleteTenant('${esc(t.tenant_id||t.id||'')}')">Delete</button>
+          </td>
+        </tr>`).join('')
+    : '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">No tenants</td></tr>';
+}
+
+async function createTenant() {
+  const name = document.getElementById('tenant-name').value.trim();
+  if (!name) { setStatus('Name required', false); return; }
+  const [ok] = await api('POST', '/v1/tenants', {name});
+  if (ok) { setStatus('Tenant created'); loadTenants(); }
+}
+
+async function deleteTenant(id) {
+  if (!confirm('Delete tenant '+id+'? This cannot be undone.')) return;
+  const [ok] = await api('DELETE', '/v1/tenants/'+id);
+  if (ok) { setStatus('Deleted'); loadTenants(); }
+}
+
+async function showTenantKeys(tenantId) {
+  const dc = document.getElementById('detail-content');
+  dc.innerHTML = '<p style="color:var(--muted)">Loading...</p>';
+  openDetail();
+  const [ok, d] = await api('GET', '/v1/apikeys?tenant_id='+encodeURIComponent(tenantId));
+  if (!ok) { dc.innerHTML = '<p style="color:var(--fail)">Failed to load keys</p>'; return; }
+  const keys = d.items || d.keys || [];
+  dc.innerHTML = `
+    <h4>API Keys for ${esc(tenantId)}</h4>
+    <div style="margin:12px 0">
+      <button class="btn-sm" onclick="createTenantKey('${esc(tenantId)}')">Create Key</button>
+    </div>
+    ${keys.length ? `
+      <table><thead><tr><th>Key ID</th><th>Prefix</th><th>Scopes</th><th>Created</th><th></th></tr></thead>
+      <tbody>${keys.map(k => `
+        <tr>
+          <td class="mono">${esc(k.key_id||k.id||'')}</td>
+          <td class="mono">${esc(k.prefix||k.token?.slice(0,8)+'...'||'')}</td>
+          <td>${esc((k.scopes||[]).join(', '))}</td>
+          <td>${k.created_at ? fmt(k.created_at) : ''}</td>
+          <td><button class="btn-danger" onclick="revokeKey('${esc(k.key_id||k.id||'')}','${esc(tenantId)}')">Revoke</button></td>
+        </tr>`).join('')}
+      </tbody></table>` : '<p style="color:var(--muted);font-size:13px">No API keys</p>'}`;
+}
+
+async function createTenantKey(tenantId) {
+  const [ok, d] = await api('POST', '/v1/apikeys', {tenant_id: tenantId, scopes: ['*']});
+  if (ok) {
+    const token = d.token || d.key || '';
+    alert('New API Key (copy now — shown only once):\n\n' + token);
+    showTenantKeys(tenantId);
+  }
+}
+
+async function revokeKey(keyId, tenantId) {
+  if (!confirm('Revoke key '+keyId+'?')) return;
+  const [ok] = await api('DELETE', '/v1/apikeys/'+keyId);
+  if (ok) { setStatus('Key revoked'); showTenantKeys(tenantId); }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -714,9 +852,6 @@ function httpColor(code) {
   if (code >= 500) return 'var(--fail)';
   return 'var(--warn)';
 }
-
-// ── Boot ──────────────────────────────────────────────────────────────────────
-loadStats();
 </script>
 </body>
 </html>

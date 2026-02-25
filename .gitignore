@@ -19,6 +19,12 @@ site/
 .artifacts/
 .baseline/
 
+target/
+.claude/
+.idea/
+.vscode/
+*.pid
+
 # Scala/sbt (bridge)
 bridge/target/
 bridge/project/target/

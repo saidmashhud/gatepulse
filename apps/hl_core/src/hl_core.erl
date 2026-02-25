@@ -120,13 +120,6 @@ do_publish(TenantId, Event, IdempotencyKey) ->
     EventId = maps:get(<<"id">>, Event),
     Topic   = maps:get(<<"topic">>, Event),
 
-    case hl_billing:check_quota(TenantId) of
-        {error, quota_exceeded} ->
-            {error, {429, <<"monthly event limit reached">>}};
-        {error, subscription_inactive} ->
-            {error, {402, <<"subscription payment required">>}};
-        ok ->
-
     case hl_store_client:append_event(EventId, TenantId, Payload) of
         {ok, _} ->
             case IdempotencyKey of
@@ -138,7 +131,6 @@ do_publish(TenantId, Event, IdempotencyKey) ->
                           event_id => EventId, tenant_id => TenantId,
                           topic => Topic}),
             hl_delivery_metrics:inc_published(TenantId, Topic),
-            hl_billing_counters:track_event(TenantId, published),
 
             case route_event(TenantId, Event) of
                 {ok, Subs} ->
@@ -160,7 +152,6 @@ do_publish(TenantId, Event, IdempotencyKey) ->
             end;
 
         {error, _} = E -> E
-    end
     end.
 
 check_idempotency(_TenantId, undefined) ->

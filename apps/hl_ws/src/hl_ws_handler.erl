@@ -13,17 +13,8 @@ init(Req, _Opts) ->
     QS       = cowboy_req:parse_qs(Req),
     Topics   = parse_topics(proplists:get_value(<<"topics">>, QS, <<"#">>)),
     State    = #{tenant_id => TenantId, user_id => UserId, topics => Topics},
-    case hl_billing:plan_feature(TenantId, websocket) of
-        enabled ->
-            {cowboy_websocket, Req, State,
-             #{idle_timeout => 60_000, compress => true}};
-        disabled ->
-            Body = jsx:encode(#{<<"error">> =>
-                                <<"websocket requires growth plan or higher">>}),
-            Req1 = cowboy_req:reply(403,
-                #{<<"content-type">> => <<"application/json">>}, Body, Req),
-            {ok, Req1, State}
-    end.
+    {cowboy_websocket, Req, State,
+     #{idle_timeout => 60_000, compress => true}}.
 
 websocket_init(State) ->
     #{tenant_id := TId, user_id := Uid} = State,

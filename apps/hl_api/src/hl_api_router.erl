@@ -59,20 +59,6 @@ routes() ->
         {"/v1/dev/inbox/messages",             hl_api_h_dev_inbox, #{action => messages}},
         {"/v1/dev/inbox/messages/:id",         hl_api_h_dev_inbox, #{action => messages}},
         {"/v1/dev/inbox/receive/:token",       hl_api_h_dev_inbox, #{action => receive_hook}},
-        %% Billing — tenant self-service
-        {"/v1/billing/subscription",        hl_api_h_billing,         #{action => subscription}},
-        {"/v1/billing/usage",               hl_api_h_billing,         #{action => usage}},
-        {"/v1/billing/invoices",            hl_api_h_billing,         #{action => invoices}},
-        {"/v1/billing/invoices/:id",        hl_api_h_billing,         #{action => invoice}},
-        {"/v1/billing/upgrade",             hl_api_h_billing,         #{action => upgrade}},
-        {"/v1/billing/payment-methods",     hl_api_h_billing,         #{action => payment_methods}},
-        {"/v1/billing/payment-methods/:id", hl_api_h_billing,         #{action => payment_method}},
-        {"/v1/billing/webhooks/mgpay",      hl_api_h_billing_webhook, #{}},
-        %% Billing — admin
-        {"/v1/admin/billing/tenants",                hl_api_h_billing_admin, #{action => tenants}},
-        {"/v1/admin/billing/tenants/:id/plan",       hl_api_h_billing_admin, #{action => set_plan}},
-        {"/v1/admin/billing/invoices/:id/void",      hl_api_h_billing_admin, #{action => void_invoice}},
-        {"/v1/admin/billing/tenants/:id/trial",      hl_api_h_billing_admin, #{action => grant_trial}},
         %% Admin
         {"/v1/admin/stats",                    hl_api_h_admin,     #{}},
         {"/v1/admin/compact",                  hl_api_h_admin,     #{}},

@@ -85,15 +85,15 @@ curl -X POST http://localhost:8080/v1/events \
 
 Tenant data is fully isolated — one tenant cannot read or write another tenant's data.
 
-## Integrating a Control-Plane Service
+## Integrating with External Services
 
-When a service (e.g. Mashgate `mg-events`) manages webhooks on behalf of your application:
+When an external service manages webhooks on behalf of your application:
 
 1. Create a tenant for the service:
    ```bash
    curl -X POST http://localhost:8080/v1/tenants \
      -H "Authorization: Bearer <admin-secret>" \
-     -d '{"id": "mashgate", "name": "Mashgate Platform"}'
+     -d '{"id": "my-service", "name": "My Service"}'
    # → { "api_key": "hl_live_..." }
    ```
 
@@ -103,21 +103,6 @@ When a service (e.g. Mashgate `mg-events`) manages webhooks on behalf of your ap
    ```
 
 3. Restrict admin API access at the network layer (Docker network, Kubernetes NetworkPolicy) so only the admin can reach `/v1/tenants` and `/v1/admin`. The tenant API key alone cannot access those endpoints (it lacks the `admin` scope).
-
-## Migrating from Embedded Mode
-
-Prior versions of HookLine supported `HL_AUTH_MODE=service_token` + `HL_EMBEDDED_MODE=true`. This has been removed.
-
-**Migration steps:**
-
-1. If you were using `service_token` auth, switch to `api_key` auth:
-   - Remove `HL_AUTH_MODE`, `HL_SERVICE_TOKEN`, `HL_EMBEDDED_MODE` from your environment
-   - Add `HL_ADMIN_KEY` for tenant management
-   - Create a tenant for your control-plane service and store its API key
-
-2. Update your control-plane to pass `Authorization: Bearer <tenant-api-key>` instead of `Authorization: Bearer <service-token>` + `X-Tenant-Id` header. The tenant is now encoded in the key — no separate header is needed.
-
-3. Apply network-level isolation to protect admin endpoints instead of relying on `HL_EMBEDDED_MODE` scope restriction.
 
 ## Startup Behavior
 
